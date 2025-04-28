@@ -1,0 +1,147 @@
+swagger: "2.0"
+info:
+  title: "API Documentation"
+  version: "1.0"
+  description: "API Documentation For AdCare Apps."
+
+tags:
+  - name: "authentication"
+    description: "Endpoints related to authentication and authorization"
+  - name: "user"
+    description: "user information and management"
+
+paths:
+  /refresh-token/:
+    post:
+      tags:
+        - "authentication"
+      summary: "Obtain a new access token using refresh token"
+      description: "Use this endpoint to get a new access token without logging in again. Requires a valid refresh token in the Authorization header."
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer token format with the refresh token (e.g., 'Bearer <refresh_token>')"
+          schema:
+            type: string
+      responses:
+        200:
+          description: "Successfully obtained new access token"
+          schema:
+            type: object
+            properties:
+              access_token:
+                type: string
+                description: "New JWT access token for authenticated requests"
+        401:
+          description: "Invalid or expired refresh token"
+        422:
+          description: "Missing or invalid Authorization header format"
+
+  /register/:
+    post:
+      tags:
+        - "authentication"
+      summary: "Register a new user"
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: user
+          required: true
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+              password:
+                type: string
+      responses:
+        201:
+          description: "User registered successfully. Check email to confirm account."
+        400:
+          description: "Email already exists"
+
+  /confirm/{token}/:
+    get:
+      tags:
+        - "authentication"
+      summary: "Confirm user's email"
+      parameters:
+        - name: token
+          in: path
+          required: true
+          type: string
+          description: "The confirmation token sent via email"
+      responses:
+        200:
+          description: "Email verified successfully"
+        400:
+          description: "Invalid or expired confirmation link"
+
+  /login/:
+    post:
+      tags:
+        - "authentication"
+      summary: "Login user and obtain JWT tokens (access and refresh)"
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: credentials
+          required: true
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+                description: "User's email address"
+              password:
+                type: string
+                description: "User's password"
+      responses:
+        200:
+          description: "Logged in successfully with access and refresh tokens provided"
+          schema:
+            type: object
+            properties:
+              access_token:
+                type: string
+                description: "JWT access token for authenticated requests"
+              refresh_token:
+                type: string
+                description: "JWT refresh token for obtaining new access tokens"
+              id:
+                type: integer
+                description: "User's unique ID"
+              email:
+                type: string
+                description: "User's email address"
+             
+        401:
+          description: "Invalid credentials"
+        403:
+          description: "Email not verified"
+
+  /profile/:
+    get:
+      tags:
+        - "user"
+      summary: "Get user profile information"
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          type: string
+          description: "Bearer token format with the access token (e.g., 'Bearer <access_token>')"
+      responses:
+        200:
+          description: "User profile retrieved successfully"
+          schema:
+            type: object
+            properties:
+              bearer:
+                type: string
+                description: "Bearer's unique ID"
+        401:
+          description: "Unauthorized access"
