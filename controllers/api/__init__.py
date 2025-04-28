@@ -1,17 +1,36 @@
-import os
 import importlib
-from flask import Blueprint
+import os
+
+# Dynamically import all modules in the current directory
+current_dir = os.path.dirname(__file__)
+module_names = [
+    f[:-3] for f in os.listdir(current_dir) if f.endswith(".py") and f != "__init__.py"
+]
 
 api_blueprints = []
 
-# Loop semua file di folder api_v1
-for file in os.listdir(os.path.dirname(__file__)):
-    if file.endswith("_controller.py") and file != "__init__.py":
-        module_name = f"controllers.api.{file[:-3]}"
-        module = importlib.import_module(module_name)
 
-        # Cari semua atribut dalam module yang merupakan Blueprint dan memiliki nama diawali "admin"
-        for attr_name in dir(module):
-            attr = getattr(module, attr_name)
-            if isinstance(attr, Blueprint) and attr_name.startswith("api"):
-                api_blueprints.append(attr)
+def init_api_routes(app, mongo):
+    for module_name in module_names:
+        try:
+            module = importlib.import_module(
+                f".{module_name}", package="controllers.api"
+            )
+
+            # Check if the module has an init_routes function
+            if hasattr(module, f"init_{module_name}_routes"):
+                route_func = getattr(module, f"init_{module_name}_routes")
+                blueprint = route_func(app, mongo)
+                api_blueprints.append(blueprint)
+
+            # Special case for auth_controller
+            if module_name == "auth_controller":
+                from .auth_controller import init_auth_routes
+
+                api_auth = init_auth_routes(app, mongo)
+                api_blueprints.append(api_auth)
+
+        except ImportError as e:
+            print(f"Could not import {module_name}: {e}")
+
+    return api_blueprints
