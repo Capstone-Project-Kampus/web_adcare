@@ -20,17 +20,23 @@ def refresh_token():
 
 def register():
     username = request.json.get('username')
+    email = request.json.get('email')
     password = request.json.get('password')
 
-    if not username or not password:
-        return jsonify({'msg': 'Username dan password harus diisi'}), 400
+    # Memeriksa apakah username, email, atau password kosong
+    if not username or not password or not email:
+        return jsonify({'msg': 'Email, Username dan Password harus diisi'}), 400
 
-    if mongo.db.users.find_one({'username': username}):
+    # Memeriksa apakah email sudah ada
+    if mongo.db.users.find_one({'email': email}):
         return jsonify({'msg': 'Pengguna sudah ada'}), 400
 
+    # Meng-hash password
     hashed_password = generate_password_hash(password)
 
+    # Menyimpan pengguna baru ke database
     mongo.db.users.insert_one({
+        'email': email,
         'username': username,
         'password': hashed_password,
         'api_key': None
@@ -38,20 +44,32 @@ def register():
 
     return jsonify({'msg': 'Registrasi berhasil'}), 201
 
+
 def login():
-    username = request.json.get('username')
+    email = request.json.get('email')
     password = request.json.get('password')
 
-    user = mongo.db.users.find_one({'username': username})
+    # Mencari pengguna di database
+    user = mongo.db.users.find_one({'email': email})
     if not user:
-        return jsonify({'msg': 'Pengguna tidak ditemukan'}), 400
+        return jsonify({'msg': 'Pengguna tidak ditemukan'}), 401  # Ganti dengan 401 untuk kredensial yang tidak valid
 
-    # Cek password pakai check_password_hash
+    # Verifikasi password
     if not check_password_hash(user['password'], password):
-        return jsonify({'msg': 'Kredensial tidak valid'}), 400
+        return jsonify({'msg': 'Kredensial tidak valid'}), 401  # Ganti dengan 401 untuk kredensial yang tidak valid
 
+    # Membuat access token
     access_token = create_access_token(identity=str(user['_id']))
-    return jsonify({'access_token': access_token}), 200
+    refresh_token = create_refresh_token(identity=str(user['_id']))  # Tambahkan refresh_token jika diperlukan
+
+    # Kembalikan data dalam response
+    return jsonify({
+        'access_token': access_token,
+        'refresh_token': refresh_token,  # Kembalikan refresh_token
+        'id': user['_id'],
+        'email': user['email'],
+    }), 200
+
 
 
 @jwt_required()  # Memastikan token sudah terverifikasi
@@ -62,4 +80,4 @@ def profile():
     if not user:
         return jsonify({'msg': 'Pengguna tidak ditemukan'}), 400
 
-    return jsonify({'username': user['username']}), 200
+    return jsonify({'username': user['username'], 'email': user['email']}), 200

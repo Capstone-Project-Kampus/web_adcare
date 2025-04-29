@@ -8,7 +8,7 @@ tags:
   - name: "authentication"
     description: "Endpoints related to authentication and authorization"
   - name: "user"
-    description: "user information and management"
+    description: "User information and management"
 
 paths:
   /refresh-token/:
@@ -54,13 +54,32 @@ paths:
             properties:
               email:
                 type: string
+                description: "User's email address"
+              username:
+                type: string
+                description: "User's username"
               password:
                 type: string
+                description: "User's password"
       responses:
         201:
           description: "User registered successfully. Check email to confirm account."
+          schema:
+            type: object
+            properties:
+              msg:
+                type: string
+                description: "Message indicating the registration status"
+                example: "Registrasi berhasil"
         400:
-          description: "Email already exists"
+          description: "Email, username, or password is missing or user already exists"
+          schema:
+            type: object
+            properties:
+              msg:
+                type: string
+                description: "Message indicating the error"
+                example: "Pengguna sudah ada"
 
   /confirm/{token}/:
     get:
@@ -117,7 +136,6 @@ paths:
               email:
                 type: string
                 description: "User's email address"
-             
         401:
           description: "Invalid credentials"
         403:
