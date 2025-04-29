@@ -15,34 +15,7 @@ tags:
     description: "Psikiater management endpoints"
 
 paths:
-  /refresh-token/:
-    post:
-      tags:
-        - "authentication"
-      summary: "Obtain a new access token using refresh token"
-      description: "Use this endpoint to get a new access token without logging in again. Requires a valid refresh token in the Authorization header."
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer token format with the refresh token (e.g., 'Bearer <refresh_token>')"
-          schema:
-            type: string
-      responses:
-        200:
-          description: "Successfully obtained new access token"
-          schema:
-            type: object
-            properties:
-              access_token:
-                type: string
-                description: "New JWT access token for authenticated requests"
-        401:
-          description: "Invalid or expired refresh token"
-        422:
-          description: "Missing or invalid Authorization header format"
-
-  /register/:
+  /api/auth/register:
     post:
       tags:
         - "authentication"
@@ -67,7 +40,7 @@ paths:
                 description: "User's password"
       responses:
         201:
-          description: "User registered successfully. Check email to confirm account."
+          description: "User registered successfully"
           schema:
             type: object
             properties:
@@ -85,28 +58,11 @@ paths:
                 description: "Message indicating the error"
                 example: "Pengguna sudah ada"
 
-  /confirm/{token}/:
-    get:
-      tags:
-        - "authentication"
-      summary: "Confirm user's email"
-      parameters:
-        - name: token
-          in: path
-          required: true
-          type: string
-          description: "The confirmation token sent via email"
-      responses:
-        200:
-          description: "Email verified successfully"
-        400:
-          description: "Invalid or expired confirmation link"
-
-  /login/:
+  /api/auth/login:
     post:
       tags:
         - "authentication"
-      summary: "Login user and obtain JWT tokens (access and refresh)"
+      summary: "User login"
       consumes:
         - application/json
       parameters:
@@ -124,7 +80,7 @@ paths:
                 description: "User's password"
       responses:
         200:
-          description: "Logged in successfully with access and refresh tokens provided"
+          description: "Login successful"
           schema:
             type: object
             properties:
@@ -133,40 +89,72 @@ paths:
                 description: "JWT access token for authenticated requests"
               refresh_token:
                 type: string
-                description: "JWT refresh token for obtaining new access tokens"
+                description: "JWT refresh token to obtain new access tokens"
               id:
-                type: integer
-                description: "User's unique ID"
+                type: string
+                description: "User's unique identifier"
               email:
                 type: string
                 description: "User's email address"
         401:
           description: "Invalid credentials"
-        403:
-          description: "Email not verified"
+          schema:
+            type: object
+            properties:
+              msg:
+                type: string
+                description: "Error message indicating login failure"
+                example: "Kredensial tidak valid"
 
-  /profile/:
+  /api/auth/profile:
     get:
       tags:
-        - "user"
-      summary: "Get user profile information"
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          type: string
-          description: "Bearer token format with the access token (e.g., 'Bearer <access_token>')"
+        - "authentication"
+      summary: "Get user profile"
+      security:
+        - bearerAuth: []
       responses:
         200:
           description: "User profile retrieved successfully"
           schema:
             type: object
             properties:
-              bearer:
+              username:
                 type: string
-                description: "Bearer's unique ID"
-        401:
-          description: "Unauthorized access"
+                description: "User's username"
+              email:
+                type: string
+                description: "User's email address"
+        400:
+          description: "User not found"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Error message"
+                example: "Pengguna tidak ditemukan"
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - "authentication"
+      summary: "Obtain a new access token using refresh token"
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: "Successfully obtained new access token"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Confirmation message"
+                example: "Refresh token"
+              access_token:
+                type: string
+                description: "New JWT access token for authenticated requests"
 
   /api/videos/all-video:
     get:

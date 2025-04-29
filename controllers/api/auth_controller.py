@@ -1,5 +1,5 @@
 from bson import ObjectId
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_pymongo import PyMongo
 from flask_jwt_extended import (
     JWTManager,
@@ -11,24 +11,57 @@ from flask_jwt_extended import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
 
+# Global variable to store mongo instance
+mongo = None
 
-def login(mongo):
-    username = request.json.get("username")
+
+def set_mongo(mongo_instance):
+    global mongo
+    mongo = mongo_instance
+
+
+def login():
+    global mongo
+    if mongo is None:
+        return jsonify({"msg": "Database connection not initialized"}), 500
+
+    email = request.json.get("email")
     password = request.json.get("password")
 
-    user = mongo.db.users.find_one({"username": username})
+    # Mencari pengguna di database
+    user = mongo.db.users.find_one({"email": email})
     if not user:
-        return jsonify({"message": "Pengguna tidak ditemukan"}), 400
+        return (
+            jsonify({"msg": "Pengguna tidak ditemukan"}),
+            401,
+        )  # Ganti dengan 401 untuk kredensial yang tidak valid
 
-    # Cek password pakai check_password_hash
+    # Verifikasi password
     if not check_password_hash(user["password"], password):
-        return jsonify({"message": "Kredensial tidak valid"}), 400
+        return (
+            jsonify({"msg": "Kredensial tidak valid"}),
+            401,
+        )  # Ganti dengan 401 untuk kredensial yang tidak valid
 
-    # Set token expiration to 2 days
-    access_token = create_access_token(
-        identity=str(user["_id"]), expires_delta=timedelta(days=2)
+    # Membuat access token
+    access_token = create_access_token(identity=str(user["_id"]))
+    refresh_token = create_refresh_token(
+        identity=str(user["_id"])
+    )  # Tambahkan refresh_token jika diperlukan
+
+    # Kembalikan data dalam response
+    return (
+        jsonify(
+            {
+                "access_token": access_token,
+                "refresh_token": refresh_token,  # Kembalikan refresh_token
+                "id": str(user["_id"]),  # Convert ObjectId to string
+                "email": user["email"],
+                "username": user["username"],
+            }
+        ),
+        200,
     )
-    return jsonify({"access_token": access_token}), 200
 
 
 def register(mongo):
@@ -60,43 +93,23 @@ def register(mongo):
     return jsonify({"msg": "Registrasi berhasil"}), 201
 
 
-def login():
+def login_with_mongo(mongo):
     email = request.json.get("email")
     password = request.json.get("password")
 
-    # Mencari pengguna di database
     user = mongo.db.users.find_one({"email": email})
     if not user:
-        return (
-            jsonify({"msg": "Pengguna tidak ditemukan"}),
-            401,
-        )  # Ganti dengan 401 untuk kredensial yang tidak valid
+        return jsonify({"message": "email tidak ditemukan"}), 400
 
-    # Verifikasi password
+    # Cek password pakai check_password_hash
     if not check_password_hash(user["password"], password):
-        return (
-            jsonify({"msg": "Kredensial tidak valid"}),
-            401,
-        )  # Ganti dengan 401 untuk kredensial yang tidak valid
+        return jsonify({"message": "Kredensial tidak valid"}), 400
 
-    # Membuat access token
-    access_token = create_access_token(identity=str(user["_id"]))
-    refresh_token = create_refresh_token(
-        identity=str(user["_id"])
-    )  # Tambahkan refresh_token jika diperlukan
-
-    # Kembalikan data dalam response
-    return (
-        jsonify(
-            {
-                "access_token": access_token,
-                "refresh_token": refresh_token,  # Kembalikan refresh_token
-                "id": user["_id"],
-                "email": user["email"],
-            }
-        ),
-        200,
+    # Set token expiration to 2 days
+    access_token = create_access_token(
+        identity=str(user["_id"]), expires_delta=timedelta(days=2)
     )
+    return jsonify({"access_token": access_token}), 200
 
 
 @jwt_required()  # Memastikan token sudah terverifikasi
@@ -112,7 +125,10 @@ def profile():
     return jsonify({"username": user["username"], "email": user["email"]}), 200
 
 
-def init_auth_routes(app, mongo):
+def init_auth_routes(app, mongo_instance):
+    global mongo
+    mongo = mongo_instance
+
     api_auth = Blueprint("api_auth", __name__, url_prefix="/api/auth")
 
     @api_auth.route("/register", methods=["POST"])
@@ -121,12 +137,12 @@ def init_auth_routes(app, mongo):
 
     @api_auth.route("/login", methods=["POST"])
     def blueprint_login():
-        return login(mongo)
+        return login()
 
     @api_auth.route("/profile", methods=["GET"])
     @jwt_required()
     def blueprint_profile():
-        return profile(mongo)
+        return profile()
 
     @api_auth.route("/refresh", methods=["POST"])
     @jwt_required(refresh=True)
