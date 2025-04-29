@@ -17,11 +17,11 @@ def login(mongo):
 
     user = mongo.db.users.find_one({"username": username})
     if not user:
-        return jsonify({"msg": "Pengguna tidak ditemukan"}), 400
+        return jsonify({"message": "Pengguna tidak ditemukan"}), 400
 
     # Cek password pakai check_password_hash
     if not check_password_hash(user["password"], password):
-        return jsonify({"msg": "Kredensial tidak valid"}), 400
+        return jsonify({"message": "Kredensial tidak valid"}), 400
 
     access_token = create_access_token(identity=str(user["_id"]))
     return jsonify({"access_token": access_token}), 200
@@ -32,10 +32,10 @@ def register(mongo):
     password = request.json.get("password")
 
     if not username or not password:
-        return jsonify({"msg": "Username dan password harus diisi"}), 400
+        return jsonify({"message": "Username dan password harus diisi"}), 400
 
     if mongo.db.users.find_one({"username": username}):
-        return jsonify({"msg": "Pengguna sudah ada"}), 400
+        return jsonify({"message": "Pengguna sudah ada"}), 400
 
     hashed_password = generate_password_hash(password)
 
@@ -43,7 +43,7 @@ def register(mongo):
         {"username": username, "password": hashed_password, "api_key": None}
     )
 
-    return jsonify({"msg": "Registrasi berhasil"}), 201
+    return jsonify({"message": "Registrasi berhasil"}), 201
 
 
 def profile(mongo):
@@ -51,7 +51,7 @@ def profile(mongo):
     user = mongo.db.users.find_one({"_id": ObjectId(current_user_id)})
 
     if not user:
-        return jsonify({"msg": "Pengguna tidak ditemukan"}), 400
+        return jsonify({"message": "Pengguna tidak ditemukan"}), 400
 
     return jsonify({"username": user["username"]}), 200
 

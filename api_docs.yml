@@ -9,6 +9,10 @@ tags:
     description: "Endpoints related to authentication and authorization"
   - name: "user"
     description: "user information and management"
+  - name: "videos"
+    description: "Video management endpoints"
+  - name: "psikiaters"
+    description: "Psikiater management endpoints"
 
 paths:
   /refresh-token/:
@@ -117,7 +121,7 @@ paths:
               email:
                 type: string
                 description: "User's email address"
-             
+
         401:
           description: "Invalid credentials"
         403:
@@ -145,3 +149,417 @@ paths:
                 description: "Bearer's unique ID"
         401:
           description: "Unauthorized access"
+
+  /api/videos/all-video:
+    get:
+      tags:
+        - "videos"
+      summary: "Get all videos"
+      description: "Retrieve a list of all videos"
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: "Successfully retrieved videos"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Response message"
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                      description: "Unique identifier for the video"
+                    title:
+                      type: string
+                      description: "Title of the video"
+                    url:
+                      type: string
+                      description: "URL of the video"
+                    description:
+                      type: string
+                      description: "Optional description of the video"
+        401:
+          description: "Unauthorized - Invalid or missing JWT token"
+
+  /api/videos/create:
+    post:
+      tags:
+        - "videos"
+      summary: "Create a new video"
+      description: "Create a new video entry"
+      security:
+        - bearerAuth: []
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: video
+          required: true
+          schema:
+            type: object
+            required:
+              - title
+              - url
+            properties:
+              title:
+                type: string
+                description: "Title of the video"
+              url:
+                type: string
+                description: "URL of the video"
+              description:
+                type: string
+                description: "Optional description of the video"
+      responses:
+        201:
+          description: "Video created successfully"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Success message"
+              data:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    description: "Unique identifier of the created video"
+                  title:
+                    type: string
+                    description: "Title of the created video"
+                  url:
+                    type: string
+                    description: "URL of the created video"
+        400:
+          description: "Missing required fields"
+        401:
+          description: "Unauthorized - Invalid or missing JWT token"
+        500:
+          description: "Internal server error"
+
+  /api/videos/update/{video_id}:
+    put:
+      tags:
+        - "videos"
+      summary: "Update an existing video"
+      description: "Update details of a specific video"
+      security:
+        - bearerAuth: []
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: video_id
+          required: true
+          type: string
+          description: "Unique identifier of the video to update"
+        - in: body
+          name: video
+          required: true
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+                description: "New title for the video"
+              url:
+                type: string
+                description: "New URL for the video"
+              description:
+                type: string
+                description: "New description for the video"
+      responses:
+        200:
+          description: "Video updated successfully"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Success message"
+              data:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    description: "Unique identifier of the updated video"
+                  title:
+                    type: string
+                    description: "Updated title of the video"
+                  url:
+                    type: string
+                    description: "Updated URL of the video"
+        404:
+          description: "Video not found"
+        401:
+          description: "Unauthorized - Invalid or missing JWT token"
+        500:
+          description: "Internal server error"
+
+  /api/videos/delete/{video_id}:
+    delete:
+      tags:
+        - "videos"
+      summary: "Delete a video"
+      description: "Delete a specific video by its ID"
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: video_id
+          required: true
+          type: string
+          description: "Unique identifier of the video to delete"
+      responses:
+        200:
+          description: "Video deleted successfully"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Success message"
+              data:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    description: "ID of the deleted video"
+        404:
+          description: "Video not found"
+        401:
+          description: "Unauthorized - Invalid or missing JWT token"
+        500:
+          description: "Internal server error"
+
+  /api/psikiater/all-psikiater:
+    get:
+      tags:
+        - "psikiaters"
+      summary: "Get all psikiaters"
+      description: "Retrieve a list of all psikiaters"
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: "Successfully retrieved psikiaters"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Response message"
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: "Unique identifier for the psikiater"
+                    nama:
+                      type: string
+                      description: "Name of the psikiater"
+                    foto:
+                      type: string
+                      description: "Photo URL of the psikiater"
+                    biografi:
+                      type: string
+                      description: "Biography of the psikiater"
+                    pendidikan:
+                      type: string
+                      description: "Educational background of the psikiater"
+                    dinas:
+                      type: string
+                      description: "Service or department of the psikiater"
+                    nomor_hp:
+                      type: string
+                      description: "Contact number of the psikiater"
+        401:
+          description: "Unauthorized - Invalid or missing JWT token"
+
+  /api/psikiater/create:
+    post:
+      tags:
+        - "psikiaters"
+      summary: "Create a new psikiater"
+      description: "Create a new psikiater entry"
+      security:
+        - bearerAuth: []
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: psikiater
+          required: true
+          schema:
+            type: object
+            required:
+              - nama
+              - biografi
+              - pendidikan
+              - dinas
+              - nomor_hp
+            properties:
+              nama:
+                type: string
+                description: "Name of the psikiater"
+              foto:
+                type: string
+                description: "Optional photo URL of the psikiater"
+              biografi:
+                type: string
+                description: "Biography of the psikiater"
+              pendidikan:
+                type: string
+                description: "Educational background of the psikiater"
+              dinas:
+                type: string
+                description: "Service or department of the psikiater"
+              nomor_hp:
+                type: string
+                description: "Contact number of the psikiater"
+      responses:
+        201:
+          description: "Psikiater created successfully"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Success message"
+              data:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: "Unique identifier of the created psikiater"
+                  nama:
+                    type: string
+                    description: "Name of the created psikiater"
+                  foto:
+                    type: string
+                    description: "Photo URL of the created psikiater"
+        400:
+          description: "Missing required fields"
+        401:
+          description: "Unauthorized - Invalid or missing JWT token"
+        500:
+          description: "Internal server error"
+
+  /api/psikiater/update/{psikiater_id}:
+    put:
+      tags:
+        - "psikiaters"
+      summary: "Update an existing psikiater"
+      description: "Update details of a specific psikiater"
+      security:
+        - bearerAuth: []
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: psikiater_id
+          required: true
+          type: integer
+          description: "Unique identifier of the psikiater to update"
+        - in: body
+          name: psikiater
+          required: true
+          schema:
+            type: object
+            properties:
+              nama:
+                type: string
+                description: "New name for the psikiater"
+              foto:
+                type: string
+                description: "New photo URL for the psikiater"
+              biografi:
+                type: string
+                description: "New biography for the psikiater"
+              pendidikan:
+                type: string
+                description: "New educational background for the psikiater"
+              dinas:
+                type: string
+                description: "New service or department for the psikiater"
+              nomor_hp:
+                type: string
+                description: "New contact number for the psikiater"
+      responses:
+        200:
+          description: "Psikiater updated successfully"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Success message"
+              data:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: "Unique identifier of the updated psikiater"
+                  nama:
+                    type: string
+                    description: "Updated name of the psikiater"
+                  foto:
+                    type: string
+                    description: "Updated photo URL of the psikiater"
+        404:
+          description: "Psikiater not found"
+        401:
+          description: "Unauthorized - Invalid or missing JWT token"
+        500:
+          description: "Internal server error"
+
+  /api/psikiater/delete/{psikiater_id}:
+    delete:
+      tags:
+        - "psikiaters"
+      summary: "Delete a psikiater"
+      description: "Delete a specific psikiater by their ID"
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: psikiater_id
+          required: true
+          type: integer
+          description: "Unique identifier of the psikiater to delete"
+      responses:
+        200:
+          description: "Psikiater deleted successfully"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Success message"
+              data:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: "ID of the deleted psikiater"
+        404:
+          description: "Psikiater not found"
+        401:
+          description: "Unauthorized - Invalid or missing JWT token"
+        500:
+          description: "Internal server error"
+
+securityDefinitions:
+  bearerAuth:
+    type: apiKey
+    name: Authorization
+    in: header
