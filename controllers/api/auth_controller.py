@@ -33,31 +33,83 @@ def login(mongo):
 
 def register(mongo):
     username = request.json.get("username")
+    email = request.json.get("email")
     password = request.json.get("password")
 
-    if not username or not password:
-        return jsonify({"message": "Username dan password harus diisi"}), 400
+    # Memeriksa apakah username, email, atau password kosong
+    if not username or not password or not email:
+        return jsonify({"msg": "Email, Username dan Password harus diisi"}), 400
 
-    if mongo.db.users.find_one({"username": username}):
+    # Memeriksa apakah email sudah ada
+    if mongo.db.users.find_one({"email": email}):
         return jsonify({"message": "Pengguna sudah ada"}), 400
 
+    # Meng-hash password
     hashed_password = generate_password_hash(password)
 
+    # Menyimpan pengguna baru ke database
     mongo.db.users.insert_one(
-        {"username": username, "password": hashed_password, "api_key": None}
+        {
+            "email": email,
+            "username": username,
+            "password": hashed_password,
+            "api_key": None,
+        }
     )
 
-    return jsonify({"message": "Registrasi berhasil"}), 201
+    return jsonify({"msg": "Registrasi berhasil"}), 201
 
 
-def profile(mongo):
-    current_user_id = get_jwt_identity()
+def login():
+    email = request.json.get("email")
+    password = request.json.get("password")
+
+    # Mencari pengguna di database
+    user = mongo.db.users.find_one({"email": email})
+    if not user:
+        return (
+            jsonify({"msg": "Pengguna tidak ditemukan"}),
+            401,
+        )  # Ganti dengan 401 untuk kredensial yang tidak valid
+
+    # Verifikasi password
+    if not check_password_hash(user["password"], password):
+        return (
+            jsonify({"msg": "Kredensial tidak valid"}),
+            401,
+        )  # Ganti dengan 401 untuk kredensial yang tidak valid
+
+    # Membuat access token
+    access_token = create_access_token(identity=str(user["_id"]))
+    refresh_token = create_refresh_token(
+        identity=str(user["_id"])
+    )  # Tambahkan refresh_token jika diperlukan
+
+    # Kembalikan data dalam response
+    return (
+        jsonify(
+            {
+                "access_token": access_token,
+                "refresh_token": refresh_token,  # Kembalikan refresh_token
+                "id": user["_id"],
+                "email": user["email"],
+            }
+        ),
+        200,
+    )
+
+
+@jwt_required()  # Memastikan token sudah terverifikasi
+def profile():
+    current_user_id = (
+        get_jwt_identity()
+    )  # Mendapatkan identity pengguna setelah token diverifikasi
     user = mongo.db.users.find_one({"_id": ObjectId(current_user_id)})
 
     if not user:
         return jsonify({"message": "Pengguna tidak ditemukan"}), 400
 
-    return jsonify({"username": user["username"]}), 200
+    return jsonify({"username": user["username"], "email": user["email"]}), 200
 
 
 def init_auth_routes(app, mongo):
