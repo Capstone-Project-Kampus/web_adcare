@@ -343,8 +343,8 @@ paths:
     get:
       tags:
         - "psikiaters"
-      summary: "Get all psikiaters"
-      description: "Retrieve a list of all psikiaters"
+      summary: "Retrieve all psikiaters"
+      description: "Fetch a list of all registered psikiaters"
       security:
         - bearerAuth: []
       responses:
@@ -355,77 +355,69 @@ paths:
             properties:
               message:
                 type: string
-                description: "Response message"
               data:
                 type: array
                 items:
                   type: object
                   properties:
-                    id:
-                      type: integer
-                      description: "Unique identifier for the psikiater"
+                    _id:
+                      type: string
                     nama:
                       type: string
-                      description: "Name of the psikiater"
                     foto:
                       type: string
-                      description: "Photo URL of the psikiater"
                     biografi:
                       type: string
-                      description: "Biography of the psikiater"
                     pendidikan:
                       type: string
-                      description: "Educational background of the psikiater"
                     dinas:
                       type: string
-                      description: "Service or department of the psikiater"
                     nomor_hp:
                       type: string
-                      description: "Contact number of the psikiater"
-        401:
-          description: "Unauthorized - Invalid or missing JWT token"
+        404:
+          description: "No psikiaters found"
 
   /api/psikiater/create:
     post:
       tags:
         - "psikiaters"
       summary: "Create a new psikiater"
-      description: "Create a new psikiater entry"
+      description: "Add a new psikiater to the system"
       security:
         - bearerAuth: []
       consumes:
-        - application/json
+        - multipart/form-data
       parameters:
-        - in: body
-          name: psikiater
+        - in: formData
+          name: nama
+          type: string
           required: true
-          schema:
-            type: object
-            required:
-              - nama
-              - biografi
-              - pendidikan
-              - dinas
-              - nomor_hp
-            properties:
-              nama:
-                type: string
-                description: "Name of the psikiater"
-              foto:
-                type: string
-                description: "Optional photo URL of the psikiater"
-              biografi:
-                type: string
-                description: "Biography of the psikiater"
-              pendidikan:
-                type: string
-                description: "Educational background of the psikiater"
-              dinas:
-                type: string
-                description: "Service or department of the psikiater"
-              nomor_hp:
-                type: string
-                description: "Contact number of the psikiater"
+          description: "Name of the psikiater"
+        - in: formData
+          name: biografi
+          type: string
+          required: true
+          description: "Biography of the psikiater"
+        - in: formData
+          name: pendidikan
+          type: string
+          required: true
+          description: "Educational background of the psikiater"
+        - in: formData
+          name: dinas
+          type: string
+          required: true
+          description: "Service or department of the psikiater"
+        - in: formData
+          name: nomor_hp
+          type: string
+          required: true
+          description: "Contact phone number of the psikiater"
+        - in: formData
+          name: foto
+          type: file
+          required: false
+          description: "Profile photo of the psikiater"
       responses:
         201:
           description: "Psikiater created successfully"
@@ -434,25 +426,19 @@ paths:
             properties:
               message:
                 type: string
-                description: "Success message"
               data:
                 type: object
                 properties:
                   id:
-                    type: integer
-                    description: "Unique identifier of the created psikiater"
+                    type: string
                   nama:
                     type: string
-                    description: "Name of the created psikiater"
                   foto:
                     type: string
-                    description: "Photo URL of the created psikiater"
         400:
           description: "Missing required fields"
-        401:
-          description: "Unauthorized - Invalid or missing JWT token"
         500:
-          description: "Internal server error"
+          description: "Server error during psikiater creation"
 
   /api/psikiater/update/{psikiater_id}:
     put:
@@ -463,37 +449,43 @@ paths:
       security:
         - bearerAuth: []
       consumes:
-        - application/json
+        - multipart/form-data
       parameters:
         - in: path
           name: psikiater_id
+          type: string
           required: true
-          type: integer
           description: "Unique identifier of the psikiater to update"
-        - in: body
-          name: psikiater
-          required: true
-          schema:
-            type: object
-            properties:
-              nama:
-                type: string
-                description: "New name for the psikiater"
-              foto:
-                type: string
-                description: "New photo URL for the psikiater"
-              biografi:
-                type: string
-                description: "New biography for the psikiater"
-              pendidikan:
-                type: string
-                description: "New educational background for the psikiater"
-              dinas:
-                type: string
-                description: "New service or department for the psikiater"
-              nomor_hp:
-                type: string
-                description: "New contact number for the psikiater"
+        - in: formData
+          name: nama
+          type: string
+          required: false
+          description: "Updated name of the psikiater"
+        - in: formData
+          name: biografi
+          type: string
+          required: false
+          description: "Updated biography of the psikiater"
+        - in: formData
+          name: pendidikan
+          type: string
+          required: false
+          description: "Updated educational background of the psikiater"
+        - in: formData
+          name: dinas
+          type: string
+          required: false
+          description: "Updated service or department of the psikiater"
+        - in: formData
+          name: nomor_hp
+          type: string
+          required: false
+          description: "Updated contact phone number of the psikiater"
+        - in: formData
+          name: foto
+          type: file
+          required: false
+          description: "Updated profile photo of the psikiater"
       responses:
         200:
           description: "Psikiater updated successfully"
@@ -502,39 +494,43 @@ paths:
             properties:
               message:
                 type: string
-                description: "Success message"
               data:
                 type: object
                 properties:
-                  id:
-                    type: integer
-                    description: "Unique identifier of the updated psikiater"
+                  _id:
+                    type: string
                   nama:
                     type: string
-                    description: "Updated name of the psikiater"
                   foto:
                     type: string
-                    description: "Updated photo URL of the psikiater"
+                  biografi:
+                    type: string
+                  pendidikan:
+                    type: string
+                  dinas:
+                    type: string
+                  nomor_hp:
+                    type: string
+        400:
+          description: "Invalid psikiater ID or no update fields provided"
         404:
           description: "Psikiater not found"
-        401:
-          description: "Unauthorized - Invalid or missing JWT token"
         500:
-          description: "Internal server error"
+          description: "Server error during psikiater update"
 
   /api/psikiater/delete/{psikiater_id}:
     delete:
       tags:
         - "psikiaters"
       summary: "Delete a psikiater"
-      description: "Delete a specific psikiater by their ID"
+      description: "Remove a specific psikiater from the system"
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: psikiater_id
+          type: string
           required: true
-          type: integer
           description: "Unique identifier of the psikiater to delete"
       responses:
         200:
@@ -544,22 +540,19 @@ paths:
             properties:
               message:
                 type: string
-                description: "Success message"
               data:
                 type: object
                 properties:
                   id:
-                    type: integer
-                    description: "ID of the deleted psikiater"
+                    type: string
         404:
           description: "Psikiater not found"
-        401:
-          description: "Unauthorized - Invalid or missing JWT token"
         500:
-          description: "Internal server error"
+          description: "Server error during psikiater deletion"
 
 securityDefinitions:
   bearerAuth:
     type: apiKey
     name: Authorization
     in: header
+    description: "Enter your bearer token in the format 'Bearer <token>'"
