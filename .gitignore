@@ -17,3 +17,6 @@ venv/
 # Other IDE and editor files (optional)
 # .vscode/
 # .idea/
+uploads/
+static/uploads/
+
