@@ -20,3 +20,6 @@ venv/
 uploads/
 static/uploads/
 
+
+*.pyc
+*.pyo

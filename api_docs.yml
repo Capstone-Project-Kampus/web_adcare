@@ -7,8 +7,6 @@ info:
 tags:
   - name: "authentication"
     description: "Endpoints related to authentication and authorization"
-  - name: "user"
-    description: "User information and management"
   - name: "videos"
     description: "Video management endpoints"
   - name: "psikiaters"
