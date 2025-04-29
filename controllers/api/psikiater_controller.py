@@ -10,9 +10,10 @@ def init_psikiater_controller_routes(app, mongo):
 
     def allowed_file(filename):
         """Check if file extension is allowed."""
-        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-        return '.' in filename and \
-               filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+        ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+        return (
+            "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+        )
 
     @api_psikiater.route("/all-psikiater", methods=["GET"])
     @jwt_required()
@@ -33,7 +34,7 @@ def init_psikiater_controller_routes(app, mongo):
     @jwt_required()
     def create_psikiater():
         # Check if the request contains form data
-        if 'nama' not in request.form:
+        if "nama" not in request.form:
             return jsonify({"error": "Missing required field: nama"}), 400
 
         # Validate required fields
@@ -44,14 +45,14 @@ def init_psikiater_controller_routes(app, mongo):
 
         # Handle file upload
         foto_url = ""
-        if 'foto' in request.files:
-            foto = request.files['foto']
+        if "foto" in request.files:
+            foto = request.files["foto"]
             if foto and allowed_file(foto.filename):
                 # Generate a unique filename
-                ext = foto.filename.rsplit('.', 1)[1].lower()
+                ext = foto.filename.rsplit(".", 1)[1].lower()
                 filename = f"{uuid.uuid4()}.{ext}"
-                filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                
+                filepath = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+
                 # Save the file
                 foto.save(filepath)
                 foto_url = f"/static/uploads/{filename}"
@@ -84,8 +85,16 @@ def init_psikiater_controller_routes(app, mongo):
             )
         except Exception as e:
             # If file was uploaded but insertion failed, remove the file
-            if foto_url and os.path.exists(os.path.join(current_app.config['UPLOAD_FOLDER'], foto_url.split('/')[-1])):
-                os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], foto_url.split('/')[-1]))
+            if foto_url and os.path.exists(
+                os.path.join(
+                    current_app.config["UPLOAD_FOLDER"], foto_url.split("/")[-1]
+                )
+            ):
+                os.remove(
+                    os.path.join(
+                        current_app.config["UPLOAD_FOLDER"], foto_url.split("/")[-1]
+                    )
+                )
             return jsonify({"error": str(e)}), 500
 
     @api_psikiater.route("/update/<psikiater_id>", methods=["PUT"])
@@ -97,15 +106,28 @@ def init_psikiater_controller_routes(app, mongo):
         update_fields = {}
         foto_url = None
 
+        # First, check if the psikiater exists
+        try:
+            existing_psikiater = mongo.db.psikiaters.find_one(
+                {"_id": ObjectId(psikiater_id)}
+            )
+
+            # If psikiater not found, return 404
+            if not existing_psikiater:
+                return jsonify({"error": "Psikiater not found"}), 404
+
+        except Exception as e:
+            return jsonify({"error": f"Invalid psikiater ID: {str(e)}"}), 400
+
         # Handle file upload if present
-        if 'foto' in request.files:
-            foto = request.files['foto']
+        if "foto" in request.files:
+            foto = request.files["foto"]
             if foto and allowed_file(foto.filename):
                 # Generate a unique filename
-                ext = foto.filename.rsplit('.', 1)[1].lower()
+                ext = foto.filename.rsplit(".", 1)[1].lower()
                 filename = f"{uuid.uuid4()}.{ext}"
-                filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                
+                filepath = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+
                 # Save the file
                 foto.save(filepath)
                 foto_url = f"/static/uploads/{filename}"
@@ -119,21 +141,24 @@ def init_psikiater_controller_routes(app, mongo):
             "biografi": "biografi",
             "pendidikan": "pendidikan",
             "dinas": "dinas",
-            "nomor_hp": "nomor_hp"
+            "nomor_hp": "nomor_hp",
         }
 
         for form_key, db_key in fields_map.items():
             if form_key in request.form:
                 update_fields[db_key] = request.form[form_key]
 
+        # If no update fields provided, return error
+        if not update_fields:
+            return jsonify({"error": "No update fields provided"}), 400
+
         try:
-            # First, find the existing psikiater to handle old foto
-            existing_psikiater = mongo.db.psikiaters.find_one({"_id": ObjectId(psikiater_id)})
-            
             # If updating foto, delete the old foto file
-            if foto_url and existing_psikiater.get('foto'):
-                old_filename = existing_psikiater['foto'].split('/')[-1]
-                old_filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], old_filename)
+            if foto_url and existing_psikiater.get("foto"):
+                old_filename = existing_psikiater["foto"].split("/")[-1]
+                old_filepath = os.path.join(
+                    current_app.config["UPLOAD_FOLDER"], old_filename
+                )
                 if os.path.exists(old_filepath):
                     os.remove(old_filepath)
 
@@ -144,8 +169,8 @@ def init_psikiater_controller_routes(app, mongo):
 
             if result.modified_count == 0:
                 return (
-                    jsonify({"message": "No psikiater found or no changes made"}),
-                    404,
+                    jsonify({"message": "No changes made to psikiater"}),
+                    200,
                 )
 
             updated_psikiater = mongo.db.psikiaters.find_one(
@@ -159,7 +184,9 @@ def init_psikiater_controller_routes(app, mongo):
         except Exception as e:
             # Clean up newly uploaded file if update fails
             if foto_url:
-                filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], foto_url.split('/')[-1])
+                filepath = os.path.join(
+                    current_app.config["UPLOAD_FOLDER"], foto_url.split("/")[-1]
+                )
                 if os.path.exists(filepath):
                     os.remove(filepath)
             return jsonify({"error": str(e)}), 500
@@ -172,11 +199,13 @@ def init_psikiater_controller_routes(app, mongo):
         try:
             # First, find the psikiater to get the foto path
             psikiater = mongo.db.psikiaters.find_one({"_id": ObjectId(psikiater_id)})
-            
+
             # Delete the associated foto file if it exists
-            if psikiater and psikiater.get('foto'):
-                foto_filename = psikiater['foto'].split('/')[-1]
-                foto_filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], foto_filename)
+            if psikiater and psikiater.get("foto"):
+                foto_filename = psikiater["foto"].split("/")[-1]
+                foto_filepath = os.path.join(
+                    current_app.config["UPLOAD_FOLDER"], foto_filename
+                )
                 if os.path.exists(foto_filepath):
                     os.remove(foto_filepath)
 

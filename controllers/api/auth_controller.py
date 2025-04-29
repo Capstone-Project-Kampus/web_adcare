@@ -9,6 +9,7 @@ from flask_jwt_extended import (
     jwt_required,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import timedelta
 
 
 def login(mongo):
@@ -23,7 +24,10 @@ def login(mongo):
     if not check_password_hash(user["password"], password):
         return jsonify({"message": "Kredensial tidak valid"}), 400
 
-    access_token = create_access_token(identity=str(user["_id"]))
+    # Set token expiration to 2 days
+    access_token = create_access_token(
+        identity=str(user["_id"]), expires_delta=timedelta(days=2)
+    )
     return jsonify({"access_token": access_token}), 200
 
 
@@ -76,7 +80,10 @@ def init_auth_routes(app, mongo):
     @jwt_required(refresh=True)
     def refresh_token():
         identity = get_jwt_identity()
-        new_access_token = create_access_token(identity=identity)
+        # Also set refresh token expiration to 2 days
+        new_access_token = create_access_token(
+            identity=identity, expires_delta=timedelta(days=2)
+        )
         return jsonify({"message": "Refresh token", "access_token": new_access_token})
 
     return api_auth
