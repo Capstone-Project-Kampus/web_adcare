@@ -8,15 +8,11 @@ tags:
   - name: "authentication"
     description: "Endpoints related to authentication and authorization"
   - name: "user"
-<<<<<<< HEAD
-    description: "user information and management"
+    description: "User information and management"
   - name: "videos"
     description: "Video management endpoints"
   - name: "psikiaters"
     description: "Psikiater management endpoints"
-=======
-    description: "User information and management"
->>>>>>> a39478d91f97b69cb01c51792d73060715833a1d
 
 paths:
   /refresh-token/:
@@ -144,10 +140,6 @@ paths:
               email:
                 type: string
                 description: "User's email address"
-<<<<<<< HEAD
-
-=======
->>>>>>> a39478d91f97b69cb01c51792d73060715833a1d
         401:
           description: "Invalid credentials"
         403:
@@ -175,7 +167,6 @@ paths:
                 description: "Bearer's unique ID"
         401:
           description: "Unauthorized access"
-<<<<<<< HEAD
 
   /api/videos/all-video:
     get:
@@ -583,5 +574,3 @@ securityDefinitions:
     name: Authorization
     in: header
     description: "Enter your bearer token in the format 'Bearer <token>'"
-=======
->>>>>>> a39478d91f97b69cb01c51792d73060715833a1d
