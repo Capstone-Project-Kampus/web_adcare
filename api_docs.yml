@@ -11,6 +11,8 @@ tags:
     description: "Video management endpoints"
   - name: "psikiaters"
     description: "Psikiater management endpoints"
+  - name: "detection"
+    description: "Detection-related endpoints"
 
 paths:
   /api/auth/register:
@@ -553,6 +555,58 @@ paths:
           description: "Psikiater not found"
         500:
           description: "Server error during psikiater deletion"
+
+  paths:
+  /toy/movement:
+    post:
+      tags:
+        - "detection"
+      summary: "Post toy movement data"
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: movement
+          required: true
+          schema:
+            type: object
+            properties:
+              movement:
+                type: string
+                description: "Movement type (e.g., fidgeting, normal)"
+      responses:
+        200:
+          description: "Movement status accepted"
+          schema:
+            type: object
+            properties:
+              movement:
+                type: string
+                example: "Fidgeting"
+        400:
+          description: "Invalid input"
+          schema:
+            type: object
+            properties:
+              msg:
+                type: string
+                example: "Input tidak valid"
+  
+  /toy/status:
+    get:
+      tags:
+        - "detection"
+      summary: "Get toy status based on movement detection"
+      responses:
+        200:
+          description: "Current toy status"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "Normal"
+
 
 securityDefinitions:
   bearerAuth:

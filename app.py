@@ -1,11 +1,18 @@
+import base64
 import os
+import tempfile
 import uuid
+import cv2
 from flask import Flask, render_template, request, jsonify
+import mediapipe as mp
 from flask_jwt_extended import JWTManager, jwt_required
 from flask_pymongo import PyMongo
 from dotenv import load_dotenv
 from flasgger import Swagger
+import numpy as np
 from werkzeug.utils import secure_filename
+
+from controllers.api.detection_controller import detect_posture_status
 
 load_dotenv()
 
@@ -120,6 +127,56 @@ def create_app():
 
 
 app, mongo, jwt = create_app()
+
+# Fungsi untuk memeriksa ekstensi file yang diizinkan
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+
+
+# Fungsi untuk menangani endpoint deteksi pose
+@app.route("/api/detection", methods=["POST"])
+@jwt_required()
+def detection():
+    data = request.get_json()
+
+    # Memastikan 'frame' ada dalam request
+    if "frame" not in data:
+        return jsonify({"status": "fail", "message": "Frame not provided"}), 400
+
+    try:
+        # Decode base64 menjadi gambar (frame)
+        img_data = base64.b64decode(data["frame"])
+        np_arr = np.frombuffer(img_data, np.uint8)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        if frame is None:
+            return jsonify({"status": "fail", "message": "Invalid image data"}), 400
+
+        # Panggil fungsi deteksi untuk setiap komponen
+        movement_type, head_movement_count, stationary_ratio = detect_posture_status(frame)
+
+        # Deteksi gerakan yang sangat cepat atau impulsif
+        if head_movement_count > 5:
+            status = "ADHD - Gerakan Impulsif"
+        elif stationary_ratio > 0.71:
+            status = "ADHD - Fokus Terlalu Lama pada Satu Objek"
+        else:
+            status = "Normal"
+
+        return jsonify({
+            "status": "success",
+            "results": {
+                "movement_type": movement_type,
+                "head_movement_count": head_movement_count,
+                "stationary_ratio": stationary_ratio,
+                "status": status
+            }
+        })
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
 if __name__ == "__main__":
     try:
