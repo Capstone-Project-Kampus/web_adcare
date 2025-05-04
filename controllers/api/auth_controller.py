@@ -1,3 +1,4 @@
+import os
 from bson import ObjectId
 from flask import Blueprint, jsonify, request, current_app
 from flask_pymongo import PyMongo
@@ -10,6 +11,7 @@ from flask_jwt_extended import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
+from .middleware import api_key_required
 
 # Global variable to store mongo instance
 mongo = None
@@ -83,6 +85,7 @@ def login():
                         "email": user["email"],
                         "username": user["username"],
                     },
+                    "api_key": os.getenv("API_KEY"),
                 },
                 "code": 200,
             }
@@ -135,7 +138,7 @@ def register(mongo):
         "email": email,
         "username": username,
         "password": hashed_password,
-        "api_key": None,
+        "api_key": os.getenv("API_KEY"),
     }
     result = mongo.db.users.insert_one(new_user)
 
@@ -267,11 +270,13 @@ def init_auth_routes(app, mongo_instance):
 
     @api_auth.route("/profile", methods=["GET"])
     @jwt_required()
+    @api_key_required
     def blueprint_profile():
         return profile()
 
     @api_auth.route("/refresh", methods=["POST"])
     @jwt_required(refresh=True)
+    @api_key_required
     def blueprint_refresh_token():
         return refresh_token()
 

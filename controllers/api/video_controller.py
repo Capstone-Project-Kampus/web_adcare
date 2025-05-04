@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from bson import ObjectId
+from .middleware import api_key_required
 
 
 def init_video_controller_routes(app, mongo):
@@ -8,6 +9,7 @@ def init_video_controller_routes(app, mongo):
 
     @api_video.route("/all-video", methods=["GET"])
     @jwt_required()
+    @api_key_required
     def get_videos():
         videos = list(mongo.db.videos.find())
         if len(videos) == 0:
@@ -31,6 +33,7 @@ def init_video_controller_routes(app, mongo):
 
     @api_video.route("/create", methods=["POST"])
     @jwt_required()
+    @api_key_required
     def create_video():
         data = request.get_json()
 
@@ -63,6 +66,7 @@ def init_video_controller_routes(app, mongo):
 
     @api_video.route("/update/<video_id>", methods=["PUT"])
     @jwt_required()
+    @api_key_required
     def update_video(video_id):
         try:
             # Validate video_id
@@ -103,6 +107,7 @@ def init_video_controller_routes(app, mongo):
 
     @api_video.route("/delete/<video_id>", methods=["DELETE"])
     @jwt_required()
+    @api_key_required
     def delete_video(video_id):
         try:
             # Validate video_id and delete

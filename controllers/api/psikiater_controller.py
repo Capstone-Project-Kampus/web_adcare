@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 import os
 import uuid
+from .middleware import api_key_required
 
 
 def init_psikiater_controller_routes(app, mongo):
@@ -17,6 +18,7 @@ def init_psikiater_controller_routes(app, mongo):
 
     @api_psikiater.route("/all-psikiater", methods=["GET"])
     @jwt_required()
+    @api_key_required
     def get_psikiaters():
         # Use the mongo instance passed from app initialization
         psikiaters = list(mongo.db.psikiaters.find())
@@ -32,6 +34,7 @@ def init_psikiater_controller_routes(app, mongo):
 
     @api_psikiater.route("/create", methods=["POST"])
     @jwt_required()
+    @api_key_required
     def create_psikiater():
         # Check if the request contains form data
         if "nama" not in request.form:
@@ -99,6 +102,7 @@ def init_psikiater_controller_routes(app, mongo):
 
     @api_psikiater.route("/update/<psikiater_id>", methods=["PUT"])
     @jwt_required()
+    @api_key_required
     def update_psikiater(psikiater_id):
         from bson import ObjectId
 
@@ -193,6 +197,7 @@ def init_psikiater_controller_routes(app, mongo):
 
     @api_psikiater.route("/delete/<psikiater_id>", methods=["DELETE"])
     @jwt_required()
+    @api_key_required
     def delete_psikiater(psikiater_id):
         from bson import ObjectId
 

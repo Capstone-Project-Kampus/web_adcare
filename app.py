@@ -6,6 +6,7 @@ from flask_pymongo import PyMongo
 from dotenv import load_dotenv
 from flasgger import Swagger
 from werkzeug.utils import secure_filename
+from functools import wraps
 
 load_dotenv()
 
@@ -20,13 +21,26 @@ def create_app():
         "JWT_SECRET_KEY"
     )  # Pastikan JWT_SECRET_KEY ada di file .env
 
+    # API Key authentication
+    app.config["API_KEY"] = os.getenv("API_KEY")
+
+    def api_key_required(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            key = request.headers.get("x-api-key")
+            if not key or key != app.config["API_KEY"]:
+                return jsonify({"error": "Invalid or missing API key"}), 401
+            return f(*args, **kwargs)
+
+        return decorated
+
     # Configure upload settings
-    app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'static', 'uploads')
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max file size
-    app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), "static", "uploads")
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max file size
+    app.config["ALLOWED_EXTENSIONS"] = {"png", "jpg", "jpeg", "gif", "webp"}
 
     # Create uploads directory if it doesn't exist
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     mongo = PyMongo(app)
     jwt = JWTManager(app)
@@ -44,60 +58,69 @@ def create_app():
 
     def allowed_file(filename):
         """Check if file extension is allowed."""
-        return '.' in filename and \
-               filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+        return (
+            "." in filename
+            and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
+        )
 
     @app.route("/", methods=["GET"])
     def home():
         return render_template("index.html")
 
     @app.route("/api/upload/image", methods=["POST"])
-    @jwt_required()
+    @api_key_required
     def upload_image():
         """
         Upload an image to the server.
         Returns the filename of the uploaded image.
         """
-        if 'file' not in request.files:
+        if "file" not in request.files:
             return jsonify({"error": "No file part"}), 400
-        
-        file = request.files['file']
-        
-        if file.filename == '':
+
+        file = request.files["file"]
+
+        if file.filename == "":
             return jsonify({"error": "No selected file"}), 400
-        
+
         if file and allowed_file(file.filename):
             # Generate a unique filename
-            ext = file.filename.rsplit('.', 1)[1].lower()
+            ext = file.filename.rsplit(".", 1)[1].lower()
             filename = f"{uuid.uuid4()}.{ext}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            
+            filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+
             # Save the file
             file.save(filepath)
-            
-            return jsonify({
-                "message": "File uploaded successfully", 
-                "filename": filename,
-                "url": f"/static/uploads/{filename}"
-            }), 201
-        
+
+            return (
+                jsonify(
+                    {
+                        "message": "File uploaded successfully",
+                        "filename": filename,
+                        "url": f"/static/uploads/{filename}",
+                    }
+                ),
+                201,
+            )
+
         return jsonify({"error": "File type not allowed"}), 400
 
     @app.route("/api/delete/image/<filename>", methods=["DELETE"])
-    @jwt_required()
+    @api_key_required
     def delete_image(filename):
         """
         Delete an uploaded image from the server.
         """
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+
         try:
             if os.path.exists(filepath):
                 os.remove(filepath)
-                return jsonify({
-                    "message": "File deleted successfully", 
-                    "filename": filename
-                }), 200
+                return (
+                    jsonify(
+                        {"message": "File deleted successfully", "filename": filename}
+                    ),
+                    200,
+                )
             else:
                 return jsonify({"error": "File not found"}), 404
         except Exception as e:
@@ -113,6 +136,7 @@ def create_app():
 
     @app.route("/api/auth/profile/", methods=["GET"])
     @jwt_required()
+    @api_key_required
     def profile():
         return auth_controller.profile(mongo)
 
@@ -123,6 +147,6 @@ app, mongo, jwt = create_app()
 
 if __name__ == "__main__":
     try:
-        app.run(debug=True, host='0.0.0.0', port=5001)
+        app.run(debug=True, host="0.0.0.0", port=5001)
     except Exception as e:
         print(f"Error: {e}")

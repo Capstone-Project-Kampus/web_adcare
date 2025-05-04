@@ -4,6 +4,18 @@ info:
   version: "1.0"
   description: "API Documentation For AdCare Apps."
 
+securityDefinitions:
+  bearerAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: "JWT token for authentication. Format: Bearer <token>"
+  apiKeyAuth:
+    type: apiKey
+    name: x-api-key
+    in: header
+    description: "API key for API access"
+
 tags:
   - name: "authentication"
     description: "Endpoints related to authentication and authorization"
@@ -36,25 +48,65 @@ paths:
               password:
                 type: string
                 description: "User's password"
+            required:
+              - email
+              - username
+              - password
       responses:
         201:
           description: "User registered successfully"
           schema:
             type: object
             properties:
-              msg:
+              status:
                 type: string
-                description: "Message indicating the registration status"
-                example: "Registrasi berhasil"
+                example: "success"
+              message:
+                type: string
+                example: "Registration successful"
+              data:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    description: "User's unique identifier"
+                  username:
+                    type: string
+                    description: "User's username"
+                  email:
+                    type: string
+                    description: "User's email address"
+              code:
+                type: integer
+                example: 201
         400:
-          description: "Email, username, or password is missing or user already exists"
+          description: "Email, username, or password is missing"
           schema:
             type: object
             properties:
-              msg:
+              status:
                 type: string
-                description: "Message indicating the error"
-                example: "Pengguna sudah ada"
+                example: "error"
+              message:
+                type: string
+                example: "Email, Username, and Password are required"
+              code:
+                type: integer
+                example: 400
+        409:
+          description: "User already exists"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "User already exists"
+              code:
+                type: integer
+                example: 409
 
   /api/auth/login:
     post:
@@ -76,33 +128,73 @@ paths:
               password:
                 type: string
                 description: "User's password"
+            required:
+              - email
+              - password
       responses:
         200:
           description: "Login successful"
           schema:
             type: object
             properties:
-              access_token:
+              status:
                 type: string
-                description: "JWT access token for authenticated requests"
-              refresh_token:
+                example: "success"
+              message:
                 type: string
-                description: "JWT refresh token to obtain new access tokens"
-              id:
+                example: "Login successful"
+              data:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: "JWT access token for authenticated requests"
+                  refresh_token:
+                    type: string
+                    description: "JWT refresh token to obtain new access tokens"
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: "User's unique identifier"
+                      email:
+                        type: string
+                        description: "User's email address"
+                      username:
+                        type: string
+                        description: "User's username"
+              code:
+                type: integer
+                example: 200
+        400:
+          description: "Missing required fields"
+          schema:
+            type: object
+            properties:
+              status:
                 type: string
-                description: "User's unique identifier"
-              email:
+                example: "error"
+              message:
                 type: string
-                description: "User's email address"
+                example: "Email and password are required"
+              code:
+                type: integer
+                example: 400
         401:
           description: "Invalid credentials"
           schema:
             type: object
             properties:
-              msg:
+              status:
                 type: string
-                description: "Error message indicating login failure"
-                example: "Kredensial tidak valid"
+                example: "error"
+              message:
+                type: string
+                example: "Invalid credentials"
+              code:
+                type: integer
+                example: 401
 
   /api/auth/profile:
     get:
@@ -111,27 +203,59 @@ paths:
       summary: "Get user profile"
       security:
         - bearerAuth: []
+        - apiKeyAuth: []
       responses:
         200:
           description: "User profile retrieved successfully"
           schema:
             type: object
             properties:
-              username:
+              status:
                 type: string
-                description: "User's username"
-              email:
+                example: "success"
+              message:
                 type: string
-                description: "User's email address"
-        400:
+                example: "Profile retrieved successfully"
+              data:
+                type: object
+                properties:
+                  username:
+                    type: string
+                    description: "User's username"
+                  email:
+                    type: string
+                    description: "User's email address"
+              code:
+                type: integer
+                example: 200
+        401:
+          description: "Unauthorized - Invalid or missing token/API key"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Invalid or missing API key"
+              code:
+                type: integer
+                example: 401
+        404:
           description: "User not found"
           schema:
             type: object
             properties:
+              status:
+                type: string
+                example: "error"
               message:
                 type: string
-                description: "Error message"
-                example: "Pengguna tidak ditemukan"
+                example: "User not found"
+              code:
+                type: integer
+                example: 404
 
   /api/auth/refresh:
     post:
@@ -140,19 +264,42 @@ paths:
       summary: "Obtain a new access token using refresh token"
       security:
         - bearerAuth: []
+        - apiKeyAuth: []
       responses:
         200:
           description: "Successfully obtained new access token"
           schema:
             type: object
             properties:
+              status:
+                type: string
+                example: "success"
               message:
                 type: string
-                description: "Confirmation message"
-                example: "Refresh token"
-              access_token:
+                example: "Token refreshed successfully"
+              data:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: "New JWT access token for authenticated requests"
+              code:
+                type: integer
+                example: 200
+        401:
+          description: "Unauthorized - Invalid or missing token/API key"
+          schema:
+            type: object
+            properties:
+              status:
                 type: string
-                description: "New JWT access token for authenticated requests"
+                example: "error"
+              message:
+                type: string
+                example: "Invalid or missing API key"
+              code:
+                type: integer
+                example: 401
 
   /api/videos/all-video:
     get:
@@ -162,15 +309,19 @@ paths:
       description: "Retrieve a list of all videos"
       security:
         - bearerAuth: []
+        - apiKeyAuth: []
       responses:
         200:
           description: "Successfully retrieved videos"
           schema:
             type: object
             properties:
+              status:
+                type: string
+                example: "success"
               message:
                 type: string
-                description: "Response message"
+                example: "Videos retrieved successfully"
               data:
                 type: array
                 items:
@@ -188,8 +339,23 @@ paths:
                     description:
                       type: string
                       description: "Optional description of the video"
+              code:
+                type: integer
+                example: 200
         401:
-          description: "Unauthorized - Invalid or missing JWT token"
+          description: "Unauthorized - Invalid or missing token/API key"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Invalid or missing API key"
+              code:
+                type: integer
+                example: 401
 
   /api/videos/create:
     post:
@@ -199,6 +365,7 @@ paths:
       description: "Create a new video entry"
       security:
         - bearerAuth: []
+        - apiKeyAuth: []
       consumes:
         - application/json
       parameters:
@@ -226,36 +393,79 @@ paths:
           schema:
             type: object
             properties:
+              status:
+                type: string
+                example: "success"
               message:
                 type: string
-                description: "Success message"
+                example: "Video created successfully"
               data:
                 type: object
                 properties:
                   _id:
                     type: string
-                    description: "Unique identifier of the created video"
+                    description: "ID of the created video"
                   title:
                     type: string
                     description: "Title of the created video"
                   url:
                     type: string
                     description: "URL of the created video"
+              code:
+                type: integer
+                example: 201
         400:
           description: "Missing required fields"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Title and url are required"
+              code:
+                type: integer
+                example: 400
         401:
           description: "Unauthorized - Invalid or missing JWT token"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Invalid or missing JWT token"
+              code:
+                type: integer
+                example: 401
         500:
-          description: "Internal server error"
+          description: "Server error during video creation"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Error creating video"
+              code:
+                type: integer
+                example: 500
 
   /api/videos/update/{video_id}:
     put:
       tags:
         - "videos"
-      summary: "Update an existing video"
-      description: "Update details of a specific video"
+      summary: "Update a video"
+      description: "Update an existing video entry"
       security:
         - bearerAuth: []
+        - apiKeyAuth: []
       consumes:
         - application/json
       parameters:
@@ -285,21 +495,27 @@ paths:
           schema:
             type: object
             properties:
+              status:
+                type: string
+                example: "success"
               message:
                 type: string
-                description: "Success message"
+                example: "Video updated successfully"
               data:
                 type: object
                 properties:
                   _id:
                     type: string
-                    description: "Unique identifier of the updated video"
+                    description: "ID of the updated video"
                   title:
                     type: string
-                    description: "Updated title of the video"
+                    description: "Updated title"
                   url:
                     type: string
-                    description: "Updated URL of the video"
+                    description: "Updated URL"
+              code:
+                type: integer
+                example: 200
         404:
           description: "Video not found"
         401:
@@ -312,9 +528,10 @@ paths:
       tags:
         - "videos"
       summary: "Delete a video"
-      description: "Delete a specific video by its ID"
+      description: "Delete an existing video entry"
       security:
         - bearerAuth: []
+        - apiKeyAuth: []
       parameters:
         - in: path
           name: video_id
@@ -327,15 +544,20 @@ paths:
           schema:
             type: object
             properties:
+              status:
+                type: string
+                example: "success"
               message:
                 type: string
-                description: "Success message"
+                example: "Video deleted successfully"
               data:
                 type: object
                 properties:
                   _id:
                     type: string
-                    description: "ID of the deleted video"
+              code:
+                type: integer
+                example: 200
         404:
           description: "Video not found"
         401:
@@ -347,10 +569,11 @@ paths:
     get:
       tags:
         - "psikiaters"
-      summary: "Retrieve all psikiaters"
-      description: "Fetch a list of all registered psikiaters"
+      summary: "Get all psikiaters"
+      description: "Retrieve a list of all psikiaters"
       security:
         - bearerAuth: []
+        - apiKeyAuth: []
       responses:
         200:
           description: "Successfully retrieved psikiaters"
@@ -386,9 +609,10 @@ paths:
       tags:
         - "psikiaters"
       summary: "Create a new psikiater"
-      description: "Add a new psikiater to the system"
+      description: "Create a new psikiater entry"
       security:
         - bearerAuth: []
+        - apiKeyAuth: []
       consumes:
         - multipart/form-data
       parameters:
@@ -449,9 +673,10 @@ paths:
       tags:
         - "psikiaters"
       summary: "Update an existing psikiater"
-      description: "Update details of a specific psikiater"
+      description: "Update an existing psikiater's information"
       security:
         - bearerAuth: []
+        - apiKeyAuth: []
       consumes:
         - multipart/form-data
       parameters:
@@ -527,9 +752,10 @@ paths:
       tags:
         - "psikiaters"
       summary: "Delete a psikiater"
-      description: "Remove a specific psikiater from the system"
+      description: "Delete an existing psikiater"
       security:
         - bearerAuth: []
+        - apiKeyAuth: []
       parameters:
         - in: path
           name: psikiater_id
@@ -554,9 +780,5 @@ paths:
         500:
           description: "Server error during psikiater deletion"
 
-securityDefinitions:
-  bearerAuth:
-    type: apiKey
-    name: Authorization
-    in: header
+
     description: "Enter your bearer token in the format 'Bearer <token>'"
