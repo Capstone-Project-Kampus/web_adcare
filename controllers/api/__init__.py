@@ -40,6 +40,13 @@ def init_api_routes(app, mongo):
                 api_auth = init_auth_routes(app, mongo)
                 api_blueprints.append(api_auth)
 
+            # Special case for google_auth_controller
+            if module_name == "google_auth_controller":
+                from .google_auth_controller import init_google_auth_routes
+
+                api_google_auth = init_google_auth_routes(app, mongo)
+                api_blueprints.append(api_google_auth)
+
         except ImportError as e:
             print(f"Could not import {module_name}: {e}")
 

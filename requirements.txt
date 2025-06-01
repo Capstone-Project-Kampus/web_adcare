@@ -6,3 +6,8 @@ flask_pymongo
 python-dotenv
 flasgger
 pymongo
+requests
+authlib
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
