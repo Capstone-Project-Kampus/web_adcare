@@ -154,6 +154,10 @@ def create_app():
     def profile():
         return auth_controller.profile(mongo)
 
+    @app.route("/api/auth/confirm_email/<token>", methods=["GET"])
+    def confirm_email(token):
+        return auth_controller.confirm_email(token)
+
     return app, mongo, jwt
 
 
