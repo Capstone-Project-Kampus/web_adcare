@@ -11,3 +11,5 @@ authlib
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
+flask_mail
+flask_cors

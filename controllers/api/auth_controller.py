@@ -94,7 +94,7 @@ def login():
     )
 
 
-def register(mongo):
+def register(mongo, s, mail):
     username = request.json.get("username")
     email = request.json.get("email")
     password = request.json.get("password")
@@ -142,6 +142,50 @@ def register(mongo):
     }
     result = mongo.db.users.insert_one(new_user)
 
+    token = s.dumps(email, salt="email-confirm")
+    confirm_url = url_for("confirm_email", token=token, _external=True)
+    # HTML email template
+    html = render_template_string(
+        """
+    <html>
+    <body style="font-family: Arial, sans-serif; color: #333; background-color: #f4f4f4; padding: 20px;">
+        <div style="max-width: 600px; margin: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <!-- Logo Section -->
+            <div style="text-align: center; padding-bottom: 10px;">
+                <img src="https://sitesku.web.id/static/landing/img/logolongadcare.png" alt="AdCare Logo" style="width: 160px; height: 80px;">
+            </div>
+            
+            <!-- Header Section -->
+            <div style="background-color: #4CAF50; padding: 10px 20px; border-radius: 8px 8px 0 0; color: #ffffff; text-align: center;">
+                <h2 style="margin: 0;">Welcome to AdCare!</h2>
+            </div>
+            
+            <!-- Body Content -->
+            <div style="padding: 20px;">
+                <p>Hi {{ name }},</p>
+                <p>Thank you for registering with AdCare. Please confirm your email address by clicking the button below:</p>
+                <p style="text-align: center;">
+                    <a href="{{ confirm_url }}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Confirm Email</a>
+                </p>
+                <p>If the button above doesn't work, copy and paste the following link into your browser:</p>
+                <p style="word-break: break-all; color: #555;"><a href="{{ confirm_url }}">{{ confirm_url }}</a></p>
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                <p style="font-size: 12px; color: #777;">If you did not register for an AdCare account, please ignore this email.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """,
+        name=username,
+        confirm_url=confirm_url,
+    )
+
+    msg = Message(
+        "Confirm Your Email", sender="AdCare <f415alarr@gmail.com>", recipients=[email]
+    )
+    msg.html = html
+    mail.send(msg)
+
     return (
         jsonify(
             {
@@ -157,6 +201,86 @@ def register(mongo):
         ),
         201,
     )
+
+
+def confirm_email_acc(token, s):
+    try:
+        email = s.loads(token, salt="email-confirm", max_age=3600)
+    except:
+        html = render_template_string(
+            """
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body style="font-family: Arial, sans-serif; color: #333; background-color: #f4f4f4; padding: 20px;">
+            <div style="max-width: 600px; margin: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                <div style="text-align: center; padding-bottom: 10px;">
+                    <img src="https://sitesku.web.id/static/landing/img/logolongadcare.png" alt="AdCare Logo" style="width: 80px; height: auto;">
+                </div>
+                <div style="background-color: #f44336; padding: 10px 20px; border-radius: 8px 8px 0 0; color: #ffffff; text-align: center;">
+                    <h2 style="margin: 0; font-size: 1.5rem;">Invalid Link</h2>
+                </div>
+                <div style="padding: 20px;">
+                    <p style="font-size: 1rem;">The confirmation link is either invalid or has expired. Please request a new confirmation link.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        )
+        return html, 400
+
+    user = mongo.db.users.find_one({"email": email})
+    if user.get("is_verified"):
+        html = render_template_string(
+            """
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body style="font-family: Arial, sans-serif; color: #333; background-color: #f4f4f4; padding: 20px;">
+            <div style="max-width: 600px; margin: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                <div style="text-align: center; padding-bottom: 10px;">
+                    <img src="https://sitesku.web.id/static/landing/img/logolongadcare.png" alt="AdCare Logo" style="width: 80px; height: auto;">
+                </div>
+                <div style="background-color: #ffc107; padding: 10px 20px; border-radius: 8px 8px 0 0; color: #ffffff; text-align: center;">
+                    <h2 style="margin: 0; font-size: 1.5rem;">Already Verified</h2>
+                </div>
+                <div style="padding: 20px;">
+                    <p style="font-size: 1rem;">Your email address has already been confirmed. You can now log in.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        )
+        return html, 400
+    else:
+        mongo.db.users.update_one({"email": email}, {"$set": {"is_verified": True}})
+        html = render_template_string(
+            """
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body style="font-family: Arial, sans-serif; color: #333; background-color: #f4f4f4; padding: 20px;">
+            <div style="max-width: 600px; margin: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                <div style="text-align: center; padding-bottom: 10px;">
+                    <img src="https://sitesku.web.id/static/landing/img/logolongadcare.png" alt="AdCare Logo" style="width: 80px; height: auto;">
+                </div>
+                <div style="background-color: #4CAF50; padding: 10px 20px; border-radius: 8px 8px 0 0; color: #ffffff; text-align: center;">
+                    <h2 style="margin: 0; font-size: 1.5rem;">Email Confirmed</h2>
+                </div>
+                <div style="padding: 20px;">
+                    <p style="font-size: 1rem;">Your email address has been successfully verified. You can now log in to AdCare Apps.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        )
+        return html, 200
 
 
 def login_with_mongo(mongo):

@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from flasgger import Swagger
 from werkzeug.utils import secure_filename
 from functools import wraps
+from flask_cors import CORS
+from flask_mail import Mail
 
 load_dotenv()
 
@@ -14,12 +16,8 @@ load_dotenv()
 def create_app():
     app = Flask(__name__)
     # Mengonfigurasi MongoDB dan JWT
-    app.config["MONGO_URI"] = os.getenv(
-        "MONGO_URI"
-    )  # Pastikan MONGO_URI ada di file .env
-    app.config["JWT_SECRET_KEY"] = os.getenv(
-        "JWT_SECRET_KEY"
-    )  # Pastikan JWT_SECRET_KEY ada di file .env
+    app.config["MONGO_URI"] = os.getenv("MONGO_URI")
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
     # API Key authentication
     app.config["API_KEY"] = os.getenv("API_KEY")
@@ -40,12 +38,27 @@ def create_app():
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max file size
     app.config["ALLOWED_EXTENSIONS"] = {"png", "jpg", "jpeg", "gif", "webp"}
 
+    # Configure Mail
+    app.config["MAIL_SERVER"] = "smtp.gmail.com"
+    app.config["MAIL_PORT"] = 587
+    app.config["MAIL_USE_TLS"] = True
+    app.config["MAIL_USE_SSL"] = False
+    app.config["MAIL_USERNAME"] = "f415alarr@gmail.com"
+    app.config["MAIL_PASSWORD"] = "grxx nhdt yxsd nama"
+    app.config["MAIL_DEFAULT_SENDER"] = ("AdCare", "f415alarr@gmail.com")
+
+    s = URLSafeTimedSerializer(app.config["SECRET_KEY"])
+    mail = Mail(app)
+
     # Create uploads directory if it doesn't exist
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     mongo = PyMongo(app)
     jwt = JWTManager(app)
     swagger = Swagger(app, template_file="api_docs.yml")
+
+    # CORS
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     from controllers.api import init_api_routes, auth_controller
     from controllers.cms import cms_blueprints
@@ -129,7 +142,7 @@ def create_app():
 
     @app.route("/api/auth/register/", methods=["POST"])
     def register():
-        return auth_controller.register(mongo)
+        return auth_controller.register(mongo, s, mail)
 
     @app.route("/api/auth/login/", methods=["POST"])
     def login():
