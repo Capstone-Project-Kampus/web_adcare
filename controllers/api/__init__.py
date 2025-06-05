@@ -5,22 +5,24 @@ from flask import current_app
 # Dynamically import all modules in the current directory
 current_dir = os.path.dirname(__file__)
 module_names = [
-    f[:-3] for f in os.listdir(current_dir) if f.endswith(".py") and f != "__init__.py" and f != "middleware.py"
+    f[:-3]
+    for f in os.listdir(current_dir)
+    if f.endswith(".py") and f != "__init__.py" and f != "middleware.py"
 ]
 
 api_blueprints = []
 
 
-def init_api_routes(app, mongo):
+def init_api_routes(app, mongo, s, mail):
     # Set mongo in app config for easy access in controllers
-    app.config['MONGO'] = mongo
-    
+    app.config["MONGO"] = mongo
+
     # Import middleware for API key protection
     from .middleware import api_key_required
-    
+
     # Make api_key_required available in app config
-    app.config['API_KEY_REQUIRED'] = api_key_required
-    
+    app.config["API_KEY_REQUIRED"] = api_key_required
+
     for module_name in module_names:
         try:
             module = importlib.import_module(
@@ -37,7 +39,7 @@ def init_api_routes(app, mongo):
             if module_name == "auth_controller":
                 from .auth_controller import init_auth_routes
 
-                api_auth = init_auth_routes(app, mongo)
+                api_auth = init_auth_routes(app, mongo, s, mail)
                 api_blueprints.append(api_auth)
 
             # Special case for google_auth_controller

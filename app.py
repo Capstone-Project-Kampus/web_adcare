@@ -2,6 +2,7 @@ import os
 import uuid
 from flask import Flask, render_template, request, jsonify
 from flask_jwt_extended import JWTManager, jwt_required
+from itsdangerous import URLSafeTimedSerializer
 from flask_pymongo import PyMongo
 from dotenv import load_dotenv
 from flasgger import Swagger
@@ -21,6 +22,7 @@ def create_app():
 
     # API Key authentication
     app.config["API_KEY"] = os.getenv("API_KEY")
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
     def api_key_required(f):
         @wraps(f)
@@ -64,7 +66,7 @@ def create_app():
     from controllers.cms import cms_blueprints
 
     # Initialize API routes and get blueprints
-    api_blueprints = init_api_routes(app, mongo)
+    api_blueprints = init_api_routes(app, mongo, s, mail)
 
     # Register semua blueprint (API dan Admin) secara otomatis
     for blueprint in api_blueprints + cms_blueprints:
@@ -100,10 +102,10 @@ def create_app():
             # Generate a unique filename
             ext = file.filename.rsplit(".", 1)[1].lower()
             filename = f"{uuid.uuid4()}.{ext}"
-            filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            # filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
 
             # Save the file
-            file.save(filepath)
+            # file.save(filepath)
 
             return (
                 jsonify(
@@ -124,7 +126,7 @@ def create_app():
         """
         Delete an uploaded image from the server.
         """
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        # filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
 
         try:
             if os.path.exists(filepath):
@@ -156,7 +158,7 @@ def create_app():
 
     @app.route("/api/auth/confirm_email/<token>", methods=["GET"])
     def confirm_email(token):
-        return auth_controller.confirm_email(token)
+        return auth_controller.confirm_email_acc(token, s)
 
     return app, mongo, jwt
 

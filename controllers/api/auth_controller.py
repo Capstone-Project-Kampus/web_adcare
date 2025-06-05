@@ -1,9 +1,8 @@
 import os
 from bson import ObjectId
-from flask import Blueprint, jsonify, request, current_app
+from flask import *
 from flask_pymongo import PyMongo
 from flask_jwt_extended import (
-    JWTManager,
     create_access_token,
     create_refresh_token,
     get_jwt_identity,
@@ -12,6 +11,7 @@ from flask_jwt_extended import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
 from .middleware import api_key_required
+from flask_mail import *
 
 # Global variable to store mongo instance
 mongo = None
@@ -56,11 +56,22 @@ def login():
     user = mongo.db.users.find_one({"email": email})
     if not user:
         return (
-            jsonify({"status": "error", "message": "User not found", "code": 404}),
+            jsonify(
+                {"status": "error", "message": "User tidak ditemukan", "code": 404}
+            ),
             404,
         )
-
-    # Verifikasi password
+    if not user.get("is_verified"):
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Pengguna belum konfirmasi email",
+                    "code": 404,
+                }
+            ),
+            401,
+        )
     if not check_password_hash(user["password"], password):
         return (
             jsonify({"status": "error", "message": "Invalid credentials", "code": 401}),
@@ -156,7 +167,7 @@ def register(mongo, s, mail):
             </div>
             
             <!-- Header Section -->
-            <div style="background-color: #4CAF50; padding: 10px 20px; border-radius: 8px 8px 0 0; color: #ffffff; text-align: center;">
+            <div style="background-color: #FF7C52; padding: 10px 20px; border-radius: 8px 8px 0 0; color: #ffffff; text-align: center;">
                 <h2 style="margin: 0;">Welcome to AdCare!</h2>
             </div>
             
@@ -165,7 +176,7 @@ def register(mongo, s, mail):
                 <p>Hi {{ name }},</p>
                 <p>Thank you for registering with AdCare. Please confirm your email address by clicking the button below:</p>
                 <p style="text-align: center;">
-                    <a href="{{ confirm_url }}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Confirm Email</a>
+                    <a href="{{ confirm_url }}" style="background-color: #FF7C52; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Confirm Email</a>
                 </p>
                 <p>If the button above doesn't work, copy and paste the following link into your browser:</p>
                 <p style="word-break: break-all; color: #555;"><a href="{{ confirm_url }}">{{ confirm_url }}</a></p>
@@ -218,7 +229,7 @@ def confirm_email_acc(token, s):
                 <div style="text-align: center; padding-bottom: 10px;">
                     <img src="https://sitesku.web.id/static/landing/img/logolongadcare.png" alt="AdCare Logo" style="width: 80px; height: auto;">
                 </div>
-                <div style="background-color: #f44336; padding: 10px 20px; border-radius: 8px 8px 0 0; color: #ffffff; text-align: center;">
+                <div style="background-color: #FF7C52; padding: 10px 20px; border-radius: 8px 8px 0 0; color: #ffffff; text-align: center;">
                     <h2 style="margin: 0; font-size: 1.5rem;">Invalid Link</h2>
                 </div>
                 <div style="padding: 20px;">
@@ -269,7 +280,7 @@ def confirm_email_acc(token, s):
                 <div style="text-align: center; padding-bottom: 10px;">
                     <img src="https://sitesku.web.id/static/landing/img/logolongadcare.png" alt="AdCare Logo" style="width: 80px; height: auto;">
                 </div>
-                <div style="background-color: #4CAF50; padding: 10px 20px; border-radius: 8px 8px 0 0; color: #ffffff; text-align: center;">
+                <div style="background-color: #FF7C52; padding: 10px 20px; border-radius: 8px 8px 0 0; color: #ffffff; text-align: center;">
                     <h2 style="margin: 0; font-size: 1.5rem;">Email Confirmed</h2>
                 </div>
                 <div style="padding: 20px;">
@@ -378,7 +389,7 @@ def refresh_token():
     )
 
 
-def init_auth_routes(app, mongo_instance):
+def init_auth_routes(app, mongo_instance, s, mail):
     global mongo
     mongo = mongo_instance
 
@@ -386,7 +397,7 @@ def init_auth_routes(app, mongo_instance):
 
     @api_auth.route("/register", methods=["POST"])
     def blueprint_register():
-        return register(mongo)
+        return register(mongo, s, mail)
 
     @api_auth.route("/login", methods=["POST"])
     def blueprint_login():
