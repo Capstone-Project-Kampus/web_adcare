@@ -80,73 +80,17 @@ def create_app():
         )
 
     @app.route("/", methods=["GET"])
+    @api_key_required
     def home():
         return render_template("index.html")
 
-    @app.route("/api/upload/image", methods=["POST"])
-    @api_key_required
-    def upload_image():
-        """
-        Upload an image to the server.
-        Returns the filename of the uploaded image.
-        """
-        if "file" not in request.files:
-            return jsonify({"error": "No file part"}), 400
-
-        file = request.files["file"]
-
-        if file.filename == "":
-            return jsonify({"error": "No selected file"}), 400
-
-        if file and allowed_file(file.filename):
-            # Generate a unique filename
-            ext = file.filename.rsplit(".", 1)[1].lower()
-            filename = f"{uuid.uuid4()}.{ext}"
-            # filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-
-            # Save the file
-            # file.save(filepath)
-
-            return (
-                jsonify(
-                    {
-                        "message": "File uploaded successfully",
-                        "filename": filename,
-                        "url": f"/static/uploads/{filename}",
-                    }
-                ),
-                201,
-            )
-
-        return jsonify({"error": "File type not allowed"}), 400
-
-    @app.route("/api/delete/image/<filename>", methods=["DELETE"])
-    @api_key_required
-    def delete_image(filename):
-        """
-        Delete an uploaded image from the server.
-        """
-        # filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-
-        try:
-            if os.path.exists(filepath):
-                os.remove(filepath)
-                return (
-                    jsonify(
-                        {"message": "File deleted successfully", "filename": filename}
-                    ),
-                    200,
-                )
-            else:
-                return jsonify({"error": "File not found"}), 404
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
     @app.route("/api/auth/register/", methods=["POST"])
+    @api_key_required
     def register():
         return auth_controller.register(mongo, s, mail)
 
     @app.route("/api/auth/login/", methods=["POST"])
+    @api_key_required
     def login():
         return auth_controller.login(mongo)
 
@@ -157,8 +101,19 @@ def create_app():
         return auth_controller.profile(mongo)
 
     @app.route("/api/auth/confirm_email/<token>", methods=["GET"])
+    @api_key_required
     def confirm_email(token):
         return auth_controller.confirm_email_acc(token, s)
+
+    @app.route("/forgot_password/", methods=["POST"])
+    @api_key_required
+    def forgot_password():
+        return auth_controller.forgot_pwd(s, mail)
+
+    @app.route("/reset_password/<token>/", methods=["GET", "POST"])
+    @api_key_required
+    def reset_password(token):
+        return auth_controller.reset_pwd(token, s)
 
     return app, mongo, jwt
 
