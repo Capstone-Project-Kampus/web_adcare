@@ -23,9 +23,31 @@ tags:
     description: "Video management endpoints"
   - name: "psikiaters"
     description: "Psikiater management endpoints"
+  - name: "general"
+    description: "General endpoints"
 
 paths:
-  /api/auth/register:
+  /:
+    get:
+      tags:
+        - "general"
+      summary: "Home page"
+      description: "Renders the index.html template"
+      security:
+        - apiKeyAuth: []
+      responses:
+        200:
+          description: "Successful operation"
+        401:
+          description: "Unauthorized - Invalid or missing API key"
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Invalid or missing API key"
+
+  /api/auth/register/:
     post:
       tags:
         - "authentication"
@@ -108,7 +130,7 @@ paths:
                 type: integer
                 example: 409
 
-  /api/auth/login:
+  /api/auth/login/:
     post:
       tags:
         - "authentication"
@@ -196,7 +218,86 @@ paths:
                 type: integer
                 example: 401
 
-  /api/auth/profile:
+  /api/auth/login_with_google/:
+    post:
+      tags:
+        - "authentication"
+      summary: "Login with Google"
+      description: "Authenticate a user using Google credentials"
+      security:
+        - apiKeyAuth: []
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: googleCredentials
+          required: true
+          schema:
+            type: object
+            properties:
+              token_id:
+                type: string
+                description: "Google OAuth token ID"
+            required:
+              - token_id
+      responses:
+        200:
+          description: "Login with Google successful"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+              message:
+                type: string
+                example: "Login with Google successful"
+              data:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: "JWT access token for authenticated requests"
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      email:
+                        type: string
+              code:
+                type: integer
+                example: 200
+        400:
+          description: "Missing token_id"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Google token_id is required"
+              code:
+                type: integer
+                example: 400
+        401:
+          description: "Invalid Google token"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Invalid Google token"
+              code:
+                type: integer
+                example: 401
+
+  /api/auth/profile/:
     get:
       tags:
         - "authentication"
@@ -257,7 +358,192 @@ paths:
                 type: integer
                 example: 404
 
-  /api/auth/refresh:
+  /api/auth/confirm_email/{token}:
+    get:
+      tags:
+        - "authentication"
+      summary: "Confirm user email"
+      description: "Confirms a user's email address using the provided token"
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: path
+          name: token
+          required: true
+          type: string
+          description: "Email confirmation token"
+      responses:
+        200:
+          description: "Email confirmed successfully"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+              message:
+                type: string
+                example: "Email confirmed successfully"
+              code:
+                type: integer
+                example: 200
+        400:
+          description: "Invalid or expired token"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Invalid or expired token"
+              code:
+                type: integer
+                example: 400
+
+  /forgot_password/:
+    post:
+      tags:
+        - "authentication"
+      summary: "Request password reset"
+      description: "Initiates password reset process by sending an email with reset link"
+      security:
+        - apiKeyAuth: []
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: forgotPasswordRequest
+          required: true
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+                description: "User's registered email address"
+            required:
+              - email
+      responses:
+        200:
+          description: "Password reset email sent"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+              message:
+                type: string
+                example: "Password reset instructions sent to your email"
+              code:
+                type: integer
+                example: 200
+        400:
+          description: "Email is missing"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Email is required"
+              code:
+                type: integer
+                example: 400
+        404:
+          description: "User not found"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "No user found with that email address"
+              code:
+                type: integer
+                example: 404
+
+  /reset_password/{token}/:
+    get:
+      tags:
+        - "authentication"
+      summary: "Display password reset form"
+      description: "Displays the password reset form if the token is valid"
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: path
+          name: token
+          required: true
+          type: string
+          description: "Password reset token"
+      responses:
+        200:
+          description: "Password reset form displayed"
+        400:
+          description: "Invalid or expired token"
+    post:
+      tags:
+        - "authentication"
+      summary: "Reset user password"
+      description: "Updates the user's password when a valid token is provided"
+      security:
+        - apiKeyAuth: []
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: token
+          required: true
+          type: string
+          description: "Password reset token"
+        - in: body
+          name: resetPasswordRequest
+          required: true
+          schema:
+            type: object
+            properties:
+              password:
+                type: string
+                description: "New password"
+            required:
+              - password
+      responses:
+        200:
+          description: "Password reset successful"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+              message:
+                type: string
+                example: "Password has been reset successfully"
+              code:
+                type: integer
+                example: 200
+        400:
+          description: "Invalid token or missing password"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Invalid token or missing password"
+              code:
+                type: integer
+                example: 400
+
+  /api/auth/refresh/:
     post:
       tags:
         - "authentication"

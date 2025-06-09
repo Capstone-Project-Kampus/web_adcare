@@ -1,5 +1,4 @@
 import os
-import uuid
 from flask import Flask, render_template, request, jsonify
 from flask_jwt_extended import JWTManager, jwt_required
 from itsdangerous import URLSafeTimedSerializer
@@ -93,6 +92,11 @@ def create_app():
     @api_key_required
     def login():
         return auth_controller.login(mongo)
+
+    @app.route("/api/auth/login_with_google/", methods=["POST"])
+    @api_key_required
+    def login_with_google():
+        return auth_controller.login_with_google()
 
     @app.route("/api/auth/profile/", methods=["GET"])
     @jwt_required()

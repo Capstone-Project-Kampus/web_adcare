@@ -1,6 +1,8 @@
 import os
 from bson import ObjectId
 from flask import *
+from google.auth.transport.requests import Request as GoogleRequest
+from google.oauth2 import id_token
 from flask_pymongo import PyMongo
 from flask_jwt_extended import (
     create_access_token,
@@ -384,55 +386,63 @@ def reset_pwd(token, s):
         return render_template("reset_password_success.html")
 
 
-# def login_with_mongo(mongo):
-#     email = request.json.get("email")
-#     password = request.json.get("password")
+def login_with_google():
+    data = request.get_json()
 
-#     # Input validation
-#     if not email or not password:
-#         return (
-#             jsonify(
-#                 {
-#                     "status": "error",
-#                     "message": "Email and password are required",
-#                     "code": 400,
-#                 }
-#             ),
-#             400,
-#         )
+    if "token_id" not in data or data["token_id"] == "":
+        return jsonify(
+            {
+                "code": 400,
+                "status": "bad request",
+                "message": f"field token_id can't be empty",
+            }
+        )
 
-#     user = mongo.db.users.find_one({"email": email})
-#     if not user:
-#         return (
-#             jsonify({"status": "error", "message": "User not found", "code": 404}),
-#             404,
-#         )
+    token_id = data["token_id"]
 
-#     # Cek password pakai check_password_hash
-#     if not check_password_hash(user["password"], password):
-#         return (
-#             jsonify({"status": "error", "message": "Invalid credentials", "code": 401}),
-#             401,
-#         )
+    try:
+        idInfo = id_token.verify_oauth2_token(
+            token_id, GoogleRequest(), os.getenv("GOOGLE_CLIENT_ID")
+        )
+    except Exception as e:
+        return (
+            jsonify(
+                {"code": 400, "status": "bad request", "message": f"Invalid token_id"}
+            ),
+            400,
+        )
 
-#     # Set token expiration to 2 days
-#     access_token = create_access_token(
-#         identity=str(user["_id"]), expires_delta=timedelta(days=2)
-#     )
-#     return (
-#         jsonify(
-#             {
-#                 "status": "success",
-#                 "message": "Login successful",
-#                 "data": {
-#                     "access_token": access_token,
-#                     "user": {"id": str(user["_id"]), "email": user["email"]},
-#                 },
-#                 "code": 200,
-#             }
-#         ),
-#         200,
-#     )
+    email = idInfo.get("email")
+    name = idInfo.get("username")
+
+    user = mongo.db.users.find_one({"email": email})
+
+    if not user:
+        user = mongo.db.users.insert_one({"email": email, "username": name}).inserted_id
+
+    access_token = create_access_token(identity=str(user))
+    refresh_token = create_refresh_token(identity=str(user))
+
+    return (
+        jsonify(
+            {
+                "code": 200,
+                "status": "success",
+                "message": "Login successful",
+                "data": {
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                    "user": {
+                        "id": str(user["_id"]),
+                        "email": user["email"],
+                        "username": user["username"],
+                    },
+                    "api_key": os.getenv("API_KEY"),
+                },
+            }
+        ),
+        200,
+    )
 
 
 @jwt_required()
