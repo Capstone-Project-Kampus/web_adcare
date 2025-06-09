@@ -405,6 +405,7 @@ def login_with_google():
             token_id, GoogleRequest(), os.getenv("GOOGLE_CLIENT_ID")
         )
     except Exception as e:
+        print(e)
         return (
             jsonify(
                 {"code": 400, "status": "bad request", "message": f"Invalid token_id"}

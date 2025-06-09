@@ -18,6 +18,7 @@ def create_app():
     # Mengonfigurasi MongoDB dan JWT
     app.config["MONGO_URI"] = os.getenv("MONGO_URI")
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = False
 
     # API Key authentication
     app.config["API_KEY"] = os.getenv("API_KEY")
@@ -94,7 +95,6 @@ def create_app():
         return auth_controller.login(mongo)
 
     @app.route("/api/auth/login_with_google/", methods=["POST"])
-    @api_key_required
     def login_with_google():
         return auth_controller.login_with_google()
 
