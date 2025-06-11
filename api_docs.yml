@@ -27,6 +27,8 @@ tags:
     description: "General endpoints"
   - name: "movement"
     description: "Movement tracking endpoints"
+  - name: "admin"
+    description: "Admin related endpoints"
 
 paths:
   /:
@@ -260,6 +262,9 @@ paths:
                   access_token:
                     type: string
                     description: "JWT access token for authenticated requests"
+                  refresh_token:
+                    type: string
+                    description: "JWT refresh token to obtain new access tokens"
                   user:
                     type: object
                     properties:
@@ -267,6 +272,11 @@ paths:
                         type: string
                       email:
                         type: string
+                      username:
+                        type: string
+                  api_key:
+                    type: string
+                    description: "API key for API access"
               code:
                 type: integer
                 example: 200
@@ -1047,26 +1057,196 @@ paths:
       parameters:
         - in: path
           name: psikiater_id
-          type: string
           required: true
-          description: "Unique identifier of the psikiater to delete"
+          type: string
+          description: "Psikiater's unique identifier"
       responses:
         200:
           description: "Psikiater deleted successfully"
           schema:
             type: object
             properties:
+              status:
+                type: string
+                example: "success"
               message:
                 type: string
+                example: "Psikiater deleted successfully"
+              code:
+                type: integer
+                example: 200
+        401:
+          description: "Unauthorized - Invalid or missing token/API key"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Invalid or missing token/API key"
+              code:
+                type: integer
+                example: 401
+        404:
+          description: "Psikiater not found"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Psikiater not found"
+              code:
+                type: integer
+                example: 404
+
+  /api/auth/google:
+    post:
+      tags:
+        - "authentication"
+      summary: "Login with Google (Mobile)"
+      description: "Authenticate a user using Google credentials (for mobile apps)"
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: googleCredentials
+          required: true
+          schema:
+            type: object
+            properties:
+              id_token:
+                type: string
+                description: "Google OAuth token ID"
+            required:
+              - id_token
+      responses:
+        200:
+          description: "Login with Google successful"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+              message:
+                type: string
+                example: "Login berhasil dengan Google"
               data:
                 type: object
                 properties:
-                  id:
+                  access_token:
                     type: string
-        404:
-          description: "Psikiater not found"
+                    description: "JWT access token for authenticated requests"
+                  refresh_token:
+                    type: string
+                    description: "JWT refresh token to obtain new access tokens"
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      email:
+                        type: string
+                      username:
+                        type: string
+                      profile_picture:
+                        type: string
+                  api_key:
+                    type: string
+                    description: "API key for API access"
+              code:
+                type: integer
+                example: 200
+        400:
+          description: "Missing id_token"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Token ID tidak ditemukan"
+              code:
+                type: integer
+                example: 400
+        401:
+          description: "Invalid Google token"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Invalid Google token"
+              code:
+                type: integer
+                example: 401
         500:
-          description: "Server error during psikiater deletion"
+          description: "Server error"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Database tidak terhubung"
+              code:
+                type: integer
+                example: 500
+
+  /admin/login:
+    post:
+      tags:
+        - "admin"
+      summary: "Admin login"
+      description: "Authenticates an administrator and starts a session"
+      consumes:
+        - application/x-www-form-urlencoded
+      parameters:
+        - in: formData
+          name: username
+          required: true
+          type: string
+          description: "Admin username"
+        - in: formData
+          name: password
+          required: true
+          type: string
+          description: "Admin password"
+      responses:
+        200:
+          description: "Login successful"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              redirect:
+                type: string
+                example: "/admin/dashboard"
+        401:
+          description: "Invalid credentials"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Invalid username or password"
 
   /api/movement:
     post:
@@ -1098,6 +1278,5 @@ paths:
           description: "Missing fields"
         500:
           description: "Internal server error"
-
 
     description: "Enter your bearer token in the format 'Bearer <token>'"

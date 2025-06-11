@@ -24,9 +24,11 @@ def set_mongo(mongo_instance):
     mongo = mongo_instance
 
 
-def login():
+def login(mongo_instance=None):
     global mongo
-    if mongo is None:
+    # Use passed instance if provided, otherwise use global
+    mongo_to_use = mongo_instance if mongo_instance else mongo
+    if mongo_to_use is None:
         return (
             jsonify(
                 {
@@ -55,7 +57,7 @@ def login():
         )
 
     # Mencari pengguna di database
-    user = mongo.db.users.find_one({"email": email})
+    user = mongo_to_use.db.users.find_one({"email": email})
     if not user:
         return (
             jsonify(
@@ -144,7 +146,8 @@ def register(mongo, s, mail):
         )
 
     # Meng-hash password
-    hashed_password = generate_password_hash(password)
+    # Explicitly use pbkdf2:sha256 to avoid scrypt dependency
+    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
 
     # Menyimpan pengguna baru ke database
     new_user = {

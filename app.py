@@ -105,17 +105,14 @@ def create_app():
         return auth_controller.profile(mongo)
 
     @app.route("/api/auth/confirm_email/<token>", methods=["GET"])
-    @api_key_required
     def confirm_email(token):
         return auth_controller.confirm_email_acc(token, s)
 
     @app.route("/forgot_password/", methods=["POST"])
-    @api_key_required
     def forgot_password():
         return auth_controller.forgot_pwd(s, mail)
 
     @app.route("/reset_password/<token>/", methods=["GET", "POST"])
-    @api_key_required
     def reset_password(token):
         return auth_controller.reset_pwd(token, s)
 
