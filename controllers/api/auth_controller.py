@@ -414,12 +414,19 @@ def login_with_google():
         )
 
     email = idInfo.get("email")
-    name = idInfo.get("username")
+    name = idInfo.get("name")
 
     user = mongo.db.users.find_one({"email": email})
 
     if not user:
-        user = mongo.db.users.insert_one({"email": email, "username": name}).inserted_id
+        user = mongo.db.users.insert_one(
+            {
+                "email": email,
+                "username": name,
+                "is_verified": True,
+                "api_key": os.getenv("API_KEY"),
+            }
+        ).inserted_id
 
     access_token = create_access_token(identity=str(user))
     refresh_token = create_refresh_token(identity=str(user))

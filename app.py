@@ -80,17 +80,14 @@ def create_app():
         )
 
     @app.route("/", methods=["GET"])
-    @api_key_required
     def home():
         return render_template("index.html")
 
     @app.route("/api/auth/register/", methods=["POST"])
-    @api_key_required
     def register():
         return auth_controller.register(mongo, s, mail)
 
     @app.route("/api/auth/login/", methods=["POST"])
-    @api_key_required
     def login():
         return auth_controller.login(mongo)
 
