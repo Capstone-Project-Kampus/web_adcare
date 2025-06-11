@@ -68,7 +68,7 @@ def create_app():
     from controllers.cms import cms_blueprints
 
     # Initialize API routes and get blueprints
-    api_blueprints = init_api_routes(app, mongo, s, mail)    
+    api_blueprints = init_api_routes(app, mongo, s, mail)
     api_blueprints.append(init_movement_routes(mongo))  # Add movement routes
 
     # Register semua blueprint (API dan Admin) secara otomatis
@@ -120,7 +120,6 @@ def create_app():
         return auth_controller.reset_pwd(token, s)
 
     return app, mongo, jwt
-
 
 
 app, mongo, jwt = create_app()
