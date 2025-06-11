@@ -1,5 +1,6 @@
 import os
 from flask import Flask, render_template, request, jsonify
+from controllers.api.movement_controller import init_movement_routes
 from flask_jwt_extended import JWTManager, jwt_required
 from itsdangerous import URLSafeTimedSerializer
 from flask_pymongo import PyMongo
@@ -63,10 +64,12 @@ def create_app():
     CORS(app, resources={r"/*": {"origins": "*"}})
 
     from controllers.api import init_api_routes, auth_controller
+    from controllers.api.movement_controller import init_movement_routes
     from controllers.cms import cms_blueprints
 
     # Initialize API routes and get blueprints
-    api_blueprints = init_api_routes(app, mongo, s, mail)
+    api_blueprints = init_api_routes(app, mongo, s, mail)    
+    api_blueprints.append(init_movement_routes(mongo))  # Add movement routes
 
     # Register semua blueprint (API dan Admin) secara otomatis
     for blueprint in api_blueprints + cms_blueprints:
@@ -117,6 +120,7 @@ def create_app():
         return auth_controller.reset_pwd(token, s)
 
     return app, mongo, jwt
+
 
 
 app, mongo, jwt = create_app()

@@ -25,6 +25,8 @@ tags:
     description: "Psikiater management endpoints"
   - name: "general"
     description: "General endpoints"
+  - name: "movement"
+    description: "Movement tracking endpoints"
 
 paths:
   /:
@@ -1065,6 +1067,37 @@ paths:
           description: "Psikiater not found"
         500:
           description: "Server error during psikiater deletion"
+
+  /api/movement:
+    post:
+      tags:
+        - "movement"
+      summary: "Save movement data"
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: movement
+          required: true
+          schema:
+            type: object
+            properties:
+              head_move:
+                type: integer
+              hand_move:
+                type: integer
+              shoulder_move:
+                type: integer
+              movement_score:
+                type: number
+                format: float
+      responses:
+        200:
+          description: "Movement saved successfully"
+        400:
+          description: "Missing fields"
+        500:
+          description: "Internal server error"
 
 
     description: "Enter your bearer token in the format 'Bearer <token>'"
