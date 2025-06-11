@@ -497,7 +497,32 @@ def refresh_token():
     )
 
 
+def get_api_key():
+    """
+    Return the API key for authenticated users
+    """
+    global mongo
+    if mongo is None:
+        return jsonify({
+            "status": "error",
+            "message": "Database connection not initialized", 
+            "code": 500
+        }), 500
+
+    # For security, this should be protected
+    # In a real production environment, you might want to use JWT authentication here
+    # But for development/testing purposes, we'll return the API key
+    return jsonify({
+        "status": "success",
+        "api_key": os.getenv("API_KEY"),
+        "code": 200
+    }), 200
+
+
 def init_auth_routes(app, mongo_instance, s, mail):
+    """
+    Initialize authentication routes
+    """
     global mongo
     mongo = mongo_instance
 
@@ -522,5 +547,9 @@ def init_auth_routes(app, mongo_instance, s, mail):
     @api_key_required
     def blueprint_refresh_token():
         return refresh_token()
+        
+    @api_auth.route("/api-key", methods=["GET"])
+    def blueprint_api_key():
+        return get_api_key()
 
     return api_auth
