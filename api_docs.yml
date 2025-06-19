@@ -15,10 +15,31 @@ securityDefinitions:
     name: x-api-key
     in: header
     description: "API key for API access"
+    
+definitions:
+  LoginHistory:
+    type: object
+    properties:
+      _id:
+        type: string
+        description: "Unique identifier for the login history record"
+      user_id:
+        type: string
+        description: "ID of the user who logged in"
+      waktu_login:
+        type: string
+        format: date-time
+        description: "Timestamp when the user logged in"
+      device:
+        type: string
+        description: "Device information (user agent) used during login"
+      activity:
+        type: string
+        description: "Type of login activity (e.g., 'login', 'login with Google')"
 
 tags:
   - name: "authentication"
-    description: "Endpoints related to authentication and authorization"
+    description: "Endpoints related to authentication and authorization, including login history tracking"
   - name: "videos"
     description: "Video management endpoints"
   - name: "psikiaters"
@@ -31,6 +52,49 @@ tags:
     description: "Admin related endpoints"
 
 paths:
+  /api/auth/login-history/:
+    get:
+      tags:
+        - "authentication"
+      summary: "Get user login history"
+      description: "Retrieves the login history for the authenticated user"
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        200:
+          description: "Login history retrieved successfully"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+              message:
+                type: string
+                example: "Login history retrieved successfully"
+              data:
+                type: array
+                items:
+                  $ref: "#/definitions/LoginHistory"
+              code:
+                type: integer
+                example: 200
+        401:
+          description: "Unauthorized - Invalid or missing token/API key"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "Unauthorized access"
+              code:
+                type: integer
+                example: 401
+                
   /:
     get:
       tags:

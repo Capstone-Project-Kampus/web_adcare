@@ -11,7 +11,7 @@ from flask_jwt_extended import (
     jwt_required,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import timedelta
+from datetime import datetime, timedelta
 from .middleware import api_key_required
 from flask_mail import *
 
@@ -85,6 +85,16 @@ def login(mongo_instance=None):
     # Membuat access token
     access_token = create_access_token(identity=str(user["_id"]))
     refresh_token = create_refresh_token(identity=str(user["_id"]))
+
+    # Record login history
+    user_agent = request.headers.get('User-Agent', 'Unknown Device')
+    login_history = {
+        "user_id": str(user["_id"]),
+        "waktu_login": datetime.utcnow(),
+        "device": user_agent,
+        "activity": "login"
+    }
+    mongo_to_use.db.login_history.insert_one(login_history)
 
     # Kembalikan data dalam response
     return (
@@ -422,104 +432,82 @@ def login_with_google():
     user = mongo.db.users.find_one({"email": email})
 
     if not user:
-        user = mongo.db.users.insert_one(
+        result = mongo.db.users.insert_one(
             {
                 "email": email,
                 "username": name,
                 "is_verified": True,
                 "api_key": os.getenv("API_KEY"),
             }
-        ).inserted_id
+        )
+        user_id = result.inserted_id
+    else:
+        user_id = user["_id"]
 
-    access_token = create_access_token(identity=str(user))
-    refresh_token = create_refresh_token(identity=str(user))
+    # Membuat access token
+    access_token = create_access_token(identity=str(user_id))
+    refresh_token = create_refresh_token(identity=str(user_id))
+
+    # Record login history for Google login
+    user_agent = request.headers.get('User-Agent', 'Unknown Device')
+    login_history = {
+        "user_id": str(user_id),
+        "waktu_login": datetime.utcnow(),
+        "device": user_agent,
+        "activity": "login with Google"
+    }
+    mongo.db.login_history.insert_one(login_history)
 
     return (
         jsonify(
             {
-                "code": 200,
                 "status": "success",
-                "message": "Login successful",
+                "message": "Login dengan Google berhasil",
                 "data": {
                     "access_token": access_token,
                     "refresh_token": refresh_token,
-                    "user": {
-                        "id": str(user["_id"]),
-                        "email": user["email"],
-                        "username": user["username"],
-                    },
+                    "user": {"id": str(user_id), "email": email, "username": name},
                     "api_key": os.getenv("API_KEY"),
                 },
+                "code": 200,
             }
         ),
         200,
     )
 
 
-@jwt_required()
-def profile():
-    current_user_id = get_jwt_identity()
-    user = mongo.db.users.find_one({"_id": ObjectId(current_user_id)})
+def get_login_history():
+    user_id = get_jwt_identity()
 
-    if not user:
+    if not user_id:
         return (
-            jsonify({"status": "error", "message": "User not found", "code": 404}),
-            404,
+            jsonify(
+                {"status": "error", "message": "Unauthorized access", "code": 401}
+            ),
+            401,
         )
 
+    # Fetch the login history for the user
+    login_history_data = list(mongo.db.login_history.find({"user_id": user_id}).sort("waktu_login", -1))
+    
+    # Convert ObjectId and datetime to string for JSON serialization
+    for entry in login_history_data:
+        if "_id" in entry:
+            entry["_id"] = str(entry["_id"])
+        if "waktu_login" in entry:
+            entry["waktu_login"] = entry["waktu_login"].isoformat()
+
     return (
         jsonify(
             {
                 "status": "success",
-                "message": "Profile retrieved successfully",
-                "data": {"username": user["username"], "email": user["email"]},
+                "message": "Login history retrieved successfully",
+                "data": login_history_data,
                 "code": 200,
             }
         ),
         200,
     )
-
-
-@jwt_required(refresh=True)
-def refresh_token():
-    identity = get_jwt_identity()
-    # Set refresh token expiration to 2 days
-    new_access_token = create_access_token(
-        identity=identity, expires_delta=timedelta(days=2)
-    )
-    return (
-        jsonify(
-            {
-                "status": "success",
-                "message": "Token refreshed successfully",
-                "data": {"access_token": new_access_token},
-                "code": 200,
-            }
-        ),
-        200,
-    )
-
-
-def get_api_key():
-    """
-    Return the API key for authenticated users
-    """
-    global mongo
-    if mongo is None:
-        return jsonify({
-            "status": "error",
-            "message": "Database connection not initialized", 
-            "code": 500
-        }), 500
-
-    # For security, this should be protected
-    # In a real production environment, you might want to use JWT authentication here
-    # But for development/testing purposes, we'll return the API key
-    return jsonify({
-        "status": "success",
-        "api_key": os.getenv("API_KEY"),
-        "code": 200
-    }), 200
 
 
 def init_auth_routes(app, mongo_instance, s, mail):
@@ -554,5 +542,11 @@ def init_auth_routes(app, mongo_instance, s, mail):
     @api_auth.route("/api-key", methods=["GET"])
     def blueprint_api_key():
         return get_api_key()
+
+    @api_auth.route("/login-history/", methods=["GET"])
+    @jwt_required()
+    @api_key_required
+    def blueprint_login_history():
+        return get_login_history()
 
     return api_auth
