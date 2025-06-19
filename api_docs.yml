@@ -47,7 +47,7 @@ tags:
   - name: "general"
     description: "General endpoints"
   - name: "movement"
-    description: "Movement tracking endpoints"
+    description: "Movement tracking endpoints for saving user movement data and retrieving history"
   - name: "admin"
     description: "Admin related endpoints"
 
@@ -1269,6 +1269,141 @@ paths:
                 type: integer
                 example: 500
 
+  /api/movement:
+    post:
+      tags:
+        - "movement"
+      summary: "Save user movement data"
+      description: "Records movement metrics including head, hand, and shoulder movements along with score and results"
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: movementData
+          required: true
+          schema:
+            type: object
+            properties:
+              head_move:
+                type: number
+                description: "Head movement metric"
+              hand_move:
+                type: number
+                description: "Hand movement metric"
+              shoulder_move:
+                type: number
+                description: "Shoulder movement metric"
+              movement_score:
+                type: number
+                description: "Overall movement score"
+              result:
+                type: string
+                description: "Analysis result of the movement"
+            required:
+              - head_move
+              - hand_move
+              - shoulder_move
+              - movement_score
+              - result
+      responses:
+        201:
+          description: "Movement saved successfully"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Movement saved successfully"
+        400:
+          description: "Bad request - Missing required fields"
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Missing fields"
+        401:
+          description: "Unauthorized - Invalid or missing token/API key"
+          schema:
+            type: object
+            properties:
+              msg:
+                type: string
+                example: "Missing Authorization Header"
+        500:
+          description: "Server error"
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Internal server error"
+
+  /api/movement/history:
+    get:
+      tags:
+        - "movement"
+      summary: "Get user movement history"
+      description: "Retrieves the movement history for the authenticated user"
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        200:
+          description: "Movement history retrieved successfully"
+          schema:
+            type: object
+            properties:
+              history:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                      description: "Unique identifier for the movement record"
+                    head_move:
+                      type: number
+                      description: "Head movement metric"
+                    hand_move:
+                      type: number
+                      description: "Hand movement metric"
+                    shoulder_move:
+                      type: number
+                      description: "Shoulder movement metric"
+                    movement_score:
+                      type: number
+                      description: "Overall movement score"
+                    result:
+                      type: string
+                      description: "Analysis result of the movement"
+                    user_id:
+                      type: string
+                      description: "ID of the user who performed the movement"
+                    timestamp:
+                      type: string
+                      format: date-time
+                      description: "Time when the movement was recorded"
+        401:
+          description: "Unauthorized - Invalid or missing token/API key"
+          schema:
+            type: object
+            properties:
+              msg:
+                type: string
+                example: "Missing Authorization Header"
+        500:
+          description: "Server error"
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Internal server error"
+                
   /admin/login:
     post:
       tags:
@@ -1311,36 +1446,3 @@ paths:
               error:
                 type: string
                 example: "Invalid username or password"
-
-  /api/movement:
-    post:
-      tags:
-        - "movement"
-      summary: "Save movement data"
-      consumes:
-        - application/json
-      parameters:
-        - in: body
-          name: movement
-          required: true
-          schema:
-            type: object
-            properties:
-              head_move:
-                type: integer
-              hand_move:
-                type: integer
-              shoulder_move:
-                type: integer
-              movement_score:
-                type: number
-                format: float
-      responses:
-        200:
-          description: "Movement saved successfully"
-        400:
-          description: "Missing fields"
-        500:
-          description: "Internal server error"
-
-    description: "Enter your bearer token in the format 'Bearer <token>'"
